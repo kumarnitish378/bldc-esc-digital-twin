@@ -129,6 +129,21 @@ def _trap(x):
     return -1.0 + (x - 11 * PI / 6) * k
 
 
+def ll_window_factor(blend):
+    """Average line-line BEMF over a 6-step conduction window (60 deg centred on its peak), per unit of
+    phase-peak BEMF. 2.0 for trapezoid, 3*sqrt(3)/pi = 1.654 for sine. This is what makes the DC-bus
+    no-load speed equal Kv * Vbus for any BEMF shape (the usual way Kv is measured)."""
+    n = 3600
+    ell = [_shape(TWO_PI * k / n, blend) - _shape(TWO_PI * k / n - D120, blend) for k in range(n)]
+    w = n // 6                                   # 60 degree window, best position (ideal commutation)
+    run = sum(ell[:w])
+    best = run
+    for k in range(n):
+        run += ell[(k + w) % n] - ell[k]
+        best = max(best, run)
+    return best / w
+
+
 def _shape(x, blend):
     if blend <= 0.0:
         return _trap(x)
@@ -148,10 +163,11 @@ class BLDCMotor:
         """Call after changing cfg fields that feed derived constants (kv, poles, shape, hall)."""
         c = self.cfg.validate()
         self.pp = int(c.pole_pairs)
-        self.ke0 = 1.0 / (2.0 * c.kv_rpm_per_v * TWO_PI / 60.0)   # V.s/rad(mech), phase peak
         self.n_cog = _lcm(int(c.slots), 2 * self.pp) if c.slots > 0 else 0
         s = c.bemf_shape.lower()
         self.blend = 0.0 if s == "trapezoid" else 1.0 if s == "sine" else min(1.0, max(0.0, c.bemf_blend))
+        # phase-peak BEMF constant [V.s/rad mech] such that 6-step no-load speed = Kv * Vbus
+        self.ke0 = 1.0 / (ll_window_factor(self.blend) * c.kv_rpm_per_v * TWO_PI / 60.0)
         self.hall_off = math.radians(c.hall_offset_deg)
 
     def reset(self, theta=0.0):

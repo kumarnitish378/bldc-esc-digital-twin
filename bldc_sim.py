@@ -518,7 +518,9 @@ def main():
     t_fps, n_fps, fps = time.monotonic(), 0, 0.0
     while running:
         if not proc.is_alive():
-            print("simulation process died (port already in use?)")
+            if proc.exitcode and proc.exitcode > 0:      # negative = killed by a signal (normal shutdown)
+                print(f"simulation process exited with code {proc.exitcode} "
+                      f"(is UDP port {args.port} already in use?)")
             break
         for ev in pygame.event.get():
             if ev.type == pygame.QUIT:
