@@ -1,0 +1,4 @@
+numpy>=1.22
+pygame>=2.1        # motor sim UI
+pyqtgraph>=0.13    # oscilloscope
+PyQt6>=6.4         # or PySide6 / PyQt5

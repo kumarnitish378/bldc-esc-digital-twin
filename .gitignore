@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+captures/
+scope_setup.json
+.venv/
+venv/
