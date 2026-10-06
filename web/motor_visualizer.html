@@ -1,0 +1,587 @@
+<title>BLDC Motor Twin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one bench - a 3-D motor stage on the left, an instrument rack on the right, a control strip below.
+   Dark-first (instrument look), with a full light variant. Copper is the accent: it is the motor's own material. */
+:root {
+  --bg: #0e1114; --stage: #121619; --panel: #161b1f; --panel-2: #1c2227; --line: #2a3238;
+  --fg: #e8ecee; --muted: #93a0a8; --faint: #5d6a73;
+  --copper: #dd8b4c; --ph-a: #f0b23e; --ph-b: #49c48d; --ph-c: #4c9be8;
+  --good: #49c48d; --warn: #e3a33b; --bad: #e5534b; --plate: #20262b; --plate-ink: #c9d1d6;
+  --f-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
+  --bg: #e7ebee; --stage: #dde3e7; --panel: #f7f9fa; --panel-2: #edf1f3; --line: #cbd3d8;
+  --fg: #14191c; --muted: #52606a; --faint: #8a979f;
+  --copper: #a8581c; --ph-a: #a86f00; --ph-b: #13804f; --ph-c: #1d68b5;
+  --good: #13804f; --warn: #9c6400; --bad: #c0352d; --plate: #d4dadd; --plate-ink: #2a3237; color-scheme: light; } }
+:root[data-theme="light"] {
+  --bg: #e7ebee; --stage: #dde3e7; --panel: #f7f9fa; --panel-2: #edf1f3; --line: #cbd3d8;
+  --fg: #14191c; --muted: #52606a; --faint: #8a979f;
+  --copper: #a8581c; --ph-a: #a86f00; --ph-b: #13804f; --ph-c: #1d68b5;
+  --good: #13804f; --warn: #9c6400; --bad: #c0352d; --plate: #d4dadd; --plate-ink: #2a3237; color-scheme: light; }
+
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 var(--f-body); }
+* { box-sizing: border-box; }
+.app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 340px; grid-template-rows: minmax(0, 1fr) auto;
+  gap: 12px; padding-inline: 16px; padding-block: 12px; }
+
+/* ---------- stage */
+.stage { position: relative; min-width: 0; min-height: 0; border: 1px solid var(--line); border-radius: 10px;
+  overflow: hidden; background: var(--stage); }
+.stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.plate { position: absolute; left: 14px; top: 14px; max-width: calc(100% - 28px); padding: 10px 14px 9px;
+  background: var(--plate); color: var(--plate-ink); border: 1px solid var(--line); border-radius: 4px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06); font-family: var(--f-mono); font-size: 11px; line-height: 1.5; }
+.plate .model { font: 700 22px/1 var(--f-display); letter-spacing: .04em; color: var(--fg); margin-bottom: 4px; }
+.plate .row { display: flex; flex-wrap: wrap; gap: 2px 14px; }
+.plate .row b { font-weight: 500; color: var(--fg); }
+.plate .src { margin-top: 6px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.pill { position: absolute; right: 14px; top: 14px; display: inline-flex; align-items: center; gap: 8px; padding: 6px 11px;
+  border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font: 500 12px var(--f-body); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); }
+.dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); }
+.stage-note { position: absolute; left: 14px; bottom: 12px; right: 14px; color: var(--muted); font-size: 12px; pointer-events: none; }
+.fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
+
+/* ---------- instrument rack */
+.rack { min-width: 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.card h2 { margin: 0 0 8px; font: 600 12px var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.speed { display: flex; align-items: baseline; gap: 8px; }
+.speed .v { font: 600 48px/1 var(--f-display); font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.speed .u { font: 500 16px var(--f-display); color: var(--muted); letter-spacing: .06em; }
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; margin-top: 10px; }
+.m .k { font-size: 11px; color: var(--muted); }
+.m .v { font: 500 15px var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.m .v small { font-size: 11px; color: var(--muted); margin-left: 2px; }
+canvas.inst { display: block; width: 100%; height: auto; }
+.legend { display: flex; gap: 14px; font: 500 11px var(--f-mono); color: var(--muted); margin-top: 6px; flex-wrap: wrap; }
+.sw { display: inline-block; width: 10px; height: 2px; vertical-align: middle; margin-right: 5px; }
+
+/* ---------- controls */
+.controls { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.ctl > label, .ctl > .lab { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.seg button, .tog { font: 500 12px var(--f-body); color: var(--fg); background: var(--panel-2); border: 0; padding: 6px 10px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--copper); color: var(--bg); }
+.tog { border: 1px solid var(--line); border-radius: 7px; }
+.tog[aria-pressed="true"] { border-color: var(--copper); color: var(--copper); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+input[type=range] { width: 210px; accent-color: var(--copper); }
+.setval { font: 500 13px var(--f-mono); min-width: 74px; font-variant-numeric: tabular-nums; }
+select { font: 500 12px var(--f-body); color: var(--fg); background: var(--panel-2); border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px; }
+.sep { width: 1px; align-self: stretch; background: var(--line); }
+
+@media (max-width: 860px) {
+  .app { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
+  .stage { height: 58vh; min-height: 320px; }
+  .controls { grid-column: auto; }
+  .pill { top: auto; bottom: 34px; }
+  .sep { display: none; }
+  input[type=range] { width: 160px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <section class="stage" id="stage" aria-label="3-D motor view">
+    <canvas id="gl"></canvas>
+    <div class="plate" aria-label="motor rating plate">
+      <div class="model">U8 II · KV100</div>
+      <div class="row"><span>36N42P</span><span>pp <b>21</b></span><span>12S <b>48 V</b></span></div>
+      <div class="row"><span>R <b>85 mΩ</b>/ph</span><span>L <b>37 µH</b></span><span>Kt <b>0.087</b> N·m/A</span></div>
+      <div class="src" id="plateSrc">built-in twin · FOC · 20 kHz</div>
+    </div>
+    <div class="pill" id="pill" role="status"><span class="dot" id="pillDot"></span><span id="pillText">Built-in twin · 1/50 speed</span></div>
+    <div class="stage-note" id="stageNote">Drag to orbit · scroll to zoom</div>
+    <div class="fallback" id="fallback" hidden></div>
+  </section>
+
+  <aside class="rack" aria-label="instruments">
+    <div class="card">
+      <h2>Shaft</h2>
+      <div class="speed"><span class="v" id="rpm">0</span><span class="u">RPM</span></div>
+      <div class="grid">
+        <div class="m"><div class="k">Torque</div><div class="v" id="torque">0.00<small>N·m</small></div></div>
+        <div class="m"><div class="k">Battery</div><div class="v" id="pbat">0<small>W</small></div></div>
+        <div class="m"><div class="k">Bus</div><div class="v" id="vbus">48.0<small>V</small></div></div>
+        <div class="m"><div class="k">i<sub>q</sub></div><div class="v" id="iq">0.0<small>A</small></div></div>
+        <div class="m"><div class="k">i<sub>d</sub></div><div class="v" id="id">0.0<small>A</small></div></div>
+        <div class="m"><div class="k">I battery</div><div class="v" id="ibat">0.0<small>A</small></div></div>
+        <div class="m"><div class="k">f electrical</div><div class="v" id="fe">0<small>Hz</small></div></div>
+        <div class="m"><div class="k">Winding</div><div class="v" id="temp">28<small>°C</small></div></div>
+        <div class="m"><div class="k">Sim time</div><div class="v" id="simt">0.00<small>s</small></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Space vectors (electrical)</h2>
+      <canvas class="inst" id="phasor" width="620" height="420" aria-label="phasor diagram"></canvas>
+      <div class="legend"><span><i class="sw" style="background:var(--copper)"></i>rotor flux d</span><span><i class="sw" style="background:var(--fg)"></i>current i</span><span><i class="sw" style="background:var(--ph-c)"></i>voltage v</span><span id="tangle">torque angle 90°</span></div>
+    </div>
+    <div class="card">
+      <h2>Phase currents</h2>
+      <canvas class="inst" id="scope" width="620" height="300" aria-label="three-phase current oscilloscope"></canvas>
+      <div class="legend"><span><i class="sw" style="background:var(--ph-a)"></i>i<sub>a</sub></span><span><i class="sw" style="background:var(--ph-b)"></i>i<sub>b</sub></span><span><i class="sw" style="background:var(--ph-c)"></i>i<sub>c</sub></span><span id="scopeWin">window 3 periods</span></div>
+    </div>
+  </aside>
+
+  <section class="controls" aria-label="controls">
+    <div class="ctl"><span class="lab">Source</span>
+      <div class="seg" role="group" aria-label="data source">
+        <button id="srcSim" aria-pressed="true">Built-in twin</button><button id="srcLive" aria-pressed="false">Live (Python)</button></div></div>
+    <div class="sep"></div>
+    <div class="ctl" id="grpMode"><span class="lab">Control</span>
+      <div class="seg" role="group" aria-label="control mode">
+        <button id="modeSpeed" aria-pressed="true">Speed</button><button id="modeTorque" aria-pressed="false">Torque</button></div></div>
+    <div class="ctl" id="grpSet"><label for="set" id="setLab">Setpoint</label>
+      <input type="range" id="set" min="0" max="5500" step="10" value="2500"><span class="setval" id="setVal">2500 rpm</span></div>
+    <div class="ctl" id="grpLoad">
+      <button class="tog" id="prop" aria-pressed="true">G28×9.2 prop</button>
+      <button class="tog" id="gust" aria-pressed="false">+0.5 N·m load</button></div>
+    <div class="ctl" id="grpTime"><label for="tscale">Time</label>
+      <select id="tscale"><option value="0.005">1/200</option><option value="0.01">1/100</option><option value="0.02" selected>1/50</option>
+        <option value="0.05">1/20</option><option value="0.1">1/10</option><option value="0.25">1/4</option><option value="1">real time</option></select>
+      <button class="tog" id="pause" aria-pressed="false">Pause</button></div>
+    <div class="sep"></div>
+    <div class="ctl"><span class="lab">View</span>
+      <button class="tog" id="cut" aria-pressed="true">Cutaway</button>
+      <div class="seg" role="group" aria-label="winding colour">
+        <button id="coilPhase" aria-pressed="true">Phases</button><button id="coilHeat" aria-pressed="false">Heat</button><button id="coilOff" aria-pressed="false">Plain</button></div>
+      <button class="tog" id="poles" aria-pressed="false">N/S poles</button>
+      <button class="tog" id="orbit" aria-pressed="false">Orbit</button></div>
+  </section>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { AfterimagePass } from 'three/addons/postprocessing/AfterimagePass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const $ = (id) => document.getElementById(id);
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const TAU = Math.PI * 2, SQ3 = Math.sqrt(3);
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ======================================================================= motor + FOC twin (browser)
+// Same parameters as motor_tmotor_u8ii_kv100.json and the same control laws as foc_esc.py,
+// written in the rotor (dq) frame - exact for a sinusoidal-BEMF surface-magnet motor.
+const M = { pp: 21, R: 0.085, Rfet: 0.002, L: 37e-6, flux: 2.7493e-3, Jr: 1.6e-4, Jp: 2.5e-3, kfan: 1.8267e-5,
+  Tc: 0.033, B: 1.77e-4, Vbat: 48, Rb: 0.02, Rth: 1.0, Cth: 80, Ta: 27.8, alpha: 0.00393, tempco: -0.001,
+  Imax: 40, Iregen: 20 };
+
+class Twin {
+  constructor() { this.Ts = 50e-6; this.sub = 5; this.prop = true; this.gust = false; this.mode = 'speed';
+    this.rpmRef = 2500; this.iqRef = 15; this.reset(); }
+  reset() { Object.assign(this, { t: 0, id: 0, iq: 0, w: 0, th: 0, Tw: M.Ta, uid: 0, uiq: 0, uiw: 0, idfw: 0,
+    rpmCmd: 0, k: 0, vbus: M.Vbat, ibatt: 0, Te: 0, Tl: 0, vd: 0, vq: 0, idr: 0, iqr: 0 }); this.retune(); }
+  retune() {
+    this.kt = 1.5 * M.pp * M.flux;
+    const wc = TAU * 1000; this.kpi = M.L * wc; this.kii = (M.R + M.Rfet) * wc;
+    this.J = M.Jr + (this.prop ? M.Jp : 0);
+    const ws = TAU * (this.prop ? 6 : 15); this.kpw = this.J * ws / this.kt; this.kiw = this.kpw * ws / 4;
+  }
+  step() {
+    const Ts = this.Ts, we = this.w * M.pp;
+    // ---- outer loop (2 kHz)
+    if (this.mode === 'speed') {
+      if (++this.k >= 10) { this.k = 0; const dt = Ts * 10, s = 4000 * dt;
+        this.rpmCmd += Math.max(-s, Math.min(s, this.rpmRef - this.rpmCmd));
+        const e = (this.rpmCmd - this.w * 60 / TAU) * TAU / 60;
+        const hi = Math.sqrt(Math.max(0, M.Imax ** 2 - this.idfw ** 2)), lo = -Math.min(M.Iregen, hi);
+        const u = this.kpw * e + this.uiw, us = Math.max(lo, Math.min(hi, u));
+        if (u === us) this.uiw += this.kiw * dt * e; else this.uiw = us - this.kpw * e;
+        this.iqr = us; }
+      this.idr = this.idfw;
+    } else { this.iqr = this.iqRef; this.idr = 0; this.rpmCmd = this.w * 60 / TAU; }
+    // ---- current loop with decoupling, voltage-circle limit, anti-windup
+    let idr = this.idr, iqr = this.iqr; const mag = Math.hypot(idr, iqr);
+    if (mag > M.Imax) { idr *= M.Imax / mag; iqr *= M.Imax / mag; }
+    const vmax = 0.95 * this.vbus / SQ3;
+    const ed = idr - this.id, eq = iqr - this.iq;
+    let ffd = -we * M.L * this.iq, ud = this.kpi * ed + this.uid + ffd, vd = Math.max(-vmax, Math.min(vmax, ud));
+    if (ud === vd) this.uid += this.kii * Ts * ed; else this.uid = vd - this.kpi * ed - ffd;
+    const vql = Math.sqrt(Math.max(0, vmax * vmax - vd * vd)), ffq = we * (M.L * this.id + M.flux);
+    let uq = this.kpi * eq + this.uiq + ffq, vq = Math.max(-vql, Math.min(vql, uq));
+    if (uq === vq) this.uiq += this.kii * Ts * eq; else this.uiq = vq - this.kpi * eq - ffq;
+    if (this.mode === 'speed') { const ex = Math.hypot(vd, uq) - 0.97 * vmax;
+      this.idfw = Math.min(0, Math.max(-20, this.idfw - 400 * Ts * ex)); }
+    this.vd = vd; this.vq = vq;
+    // ---- plant (dq), semi-implicit in R
+    const h = Ts / this.sub, Rt = M.R * (1 + M.alpha * (this.Tw - 25)) + M.Rfet;
+    const lam = M.flux * (1 + M.tempco * (this.Tw - 25)), J = this.J;
+    let P = 0;
+    for (let s = 0; s < this.sub; s++) {
+      const wE = this.w * M.pp, a = 1 / (1 + h * Rt / M.L);
+      this.id = (this.id + h / M.L * (vd + wE * M.L * this.iq)) * a;
+      this.iq = (this.iq + h / M.L * (vq - wE * M.L * this.id - wE * lam)) * a;
+      this.Te = 1.5 * M.pp * lam * this.iq;
+      const sg = Math.max(-1, Math.min(1, this.w * 2));
+      this.Tl = (this.prop ? M.kfan * this.w * Math.abs(this.w) : 0) + M.Tc * sg + M.B * this.w + (this.gust ? 0.5 : 0);
+      this.w += h * (this.Te - this.Tl) / J;
+      this.th += h * this.w;
+      const pcu = 1.5 * Rt * (this.id ** 2 + this.iq ** 2);
+      this.Tw += h * (pcu - (this.Tw - M.Ta) / M.Rth) / M.Cth;
+      P += 1.5 * (vd * this.id + vq * this.iq);
+    }
+    P /= this.sub;
+    this.ibatt = P / this.vbus;
+    this.vbus = M.Vbat - M.Rb * this.ibatt;
+    this.t += Ts;
+  }
+  phaseCurrents() { const e = M.pp * this.th; const out = [];
+    for (let k = 0; k < 3; k++) { const a = e - k * TAU / 3; out.push(this.id * Math.cos(a) - this.iq * Math.sin(a)); }
+    return out; }
+}
+
+// ======================================================================= shared display state
+const S = { src: 'sim', t: 0, rpm: 0, thMech: 0, thD: 0, ia: 0, ib: 0, ic: 0, id: 0, iq: 0, vd: 0, vq: 0, hasV: true,
+  torque: 0, vbus: 48, ibatt: 0, temp: M.Ta, live: false };
+const RB = 6000, rbT = new Float64Array(RB), rbA = new Float32Array(RB), rbB = new Float32Array(RB), rbC = new Float32Array(RB);
+let rbN = 0, rbW = 0;
+function rbPush(t, a, b, c) { if (rbN && t < rbT[(rbW - 1 + RB) % RB] - 1e-9) rbN = 0;
+  rbT[rbW] = t; rbA[rbW] = a; rbB[rbW] = b; rbC[rbW] = c; rbW = (rbW + 1) % RB; rbN = Math.min(RB, rbN + 1); }
+
+const twin = new Twin();
+let paused = false, tscale = 0.02;
+
+// ======================================================================= 3-D scene
+const stageEl = $('stage'), canvas = $('gl');
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }); }
+catch (e) { $('fallback').hidden = false; $('fallback').textContent = 'WebGL is not available in this browser, so the 3-D view cannot be shown. The instruments still run.'; }
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(32, 1, 1, 4000);
+camera.position.set(150, 118, 178);
+let composer, bloom, after, controls;
+const clipPlane = new THREE.Plane(new THREE.Vector3(-0.62, 0, -0.78), 0);
+const coils = [], magnets = [];
+let rotor;
+
+function tex(draw, w = 256, h = 256, rep = [1, 1]) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]);
+  t.anisotropy = 4; return t;
+}
+// fine winding turns (bump) and steel laminations (bump), carbon weave (colour)
+const wireBump = tex((g, w, h) => { for (let y = 0; y < h; y += 4) { const gr = g.createLinearGradient(0, y, 0, y + 4);
+  gr.addColorStop(0, '#222'); gr.addColorStop(0.5, '#eee'); gr.addColorStop(1, '#222'); g.fillStyle = gr; g.fillRect(0, y, w, 4); } }, 64, 256, [1, 3]);
+const lamBump = tex((g, w, h) => { g.fillStyle = '#bbb'; g.fillRect(0, 0, w, h); g.fillStyle = '#555';
+  for (let y = 0; y < h; y += 3) g.fillRect(0, y, w, 1); }, 32, 256, [4, 2]);
+const carbon = tex((g, w, h) => { const s = 16; for (let y = 0; y < h; y += s) for (let x = 0; x < w; x += s) {
+  const on = ((x + y) / s) % 2 === 0, gr = g.createLinearGradient(x, y, on ? x + s : x, on ? y : y + s);
+  gr.addColorStop(0, '#1a1c1e'); gr.addColorStop(0.5, '#3a3e42'); gr.addColorStop(1, '#16181a'); g.fillStyle = gr; g.fillRect(x, y, s, s); } },
+  128, 128, [6, 1]);
+
+const MAT = {
+  steel: new THREE.MeshPhysicalMaterial({ color: 0x3a3f44, metalness: 0.7, roughness: 0.48, bumpMap: lamBump, bumpScale: 0.25, clearcoat: 0.12, clearcoatRoughness: 0.6, envMapIntensity: 0.7 }),
+  copper: () => new THREE.MeshPhysicalMaterial({ color: 0xb8673a, metalness: 1.0, roughness: 0.32, bumpMap: wireBump, bumpScale: 0.6,
+    clearcoat: 0.6, clearcoatRoughness: 0.25, emissive: 0x000000 }),
+  bell: new THREE.MeshPhysicalMaterial({ color: 0x232629, metalness: 0.35, roughness: 0.52, clearcoat: 0.2, clearcoatRoughness: 0.6, envMapIntensity: 0.6, side: THREE.DoubleSide, clippingPlanes: [clipPlane] }),
+  bellAccent: new THREE.MeshPhysicalMaterial({ color: 0x8d4a2a, metalness: 0.5, roughness: 0.4, clearcoat: 0.3, envMapIntensity: 0.7, side: THREE.DoubleSide, clippingPlanes: [clipPlane] }),
+  magnet: () => new THREE.MeshPhysicalMaterial({ color: 0xb9bdc2, metalness: 1.0, roughness: 0.22, clearcoat: 0.3, clippingPlanes: [clipPlane] }),
+  shaft: new THREE.MeshPhysicalMaterial({ color: 0xc9ccd0, metalness: 1.0, roughness: 0.18 }),
+  alu: new THREE.MeshPhysicalMaterial({ color: 0x7d848a, metalness: 0.8, roughness: 0.45, envMapIntensity: 0.6 }),
+  mount: new THREE.MeshPhysicalMaterial({ color: 0x23272b, metalness: 0.6, roughness: 0.45, clearcoat: 0.4 }),
+  carbon: new THREE.MeshPhysicalMaterial({ color: 0xffffff, map: carbon, metalness: 0.2, roughness: 0.45, clearcoat: 0.6, clearcoatRoughness: 0.25, envMapIntensity: 0.5 }),
+  bolt: new THREE.MeshPhysicalMaterial({ color: 0x9da3a8, metalness: 1, roughness: 0.25 }),
+};
+
+function polar(r, a) { return new THREE.Vector2(r * Math.cos(a), r * Math.sin(a)); }
+function arc(pts, r, a0, a1, n) { for (let i = 0; i <= n; i++) pts.push(polar(r, a0 + (a1 - a0) * i / n)); }
+function toY(geo) { geo.rotateX(-Math.PI / 2); return geo; }       // shape XY, extrude +Z  ->  axis +Y
+
+function buildMotor() {
+  const motor = new THREE.Group();
+  // ---- stator lamination stack: 36 T-teeth with pole shoes (dims in mm)
+  const ry = 27.0, rt = 36.4, rs = 38.4, half = 1.25, shoe = THREE.MathUtils.degToRad(3.9), pitch = TAU / 36;
+  const pts = [];
+  for (let k = 0; k < 36; k++) {
+    const a = k * pitch, dy = Math.asin(half / ry), dt = Math.asin(half / rt);
+    arc(pts, ry, a - pitch / 2, a - dy, 3);
+    pts.push(polar(rt, a - dt), polar(rt, a - shoe), polar(rs, a - shoe));
+    arc(pts, rs, a - shoe, a + shoe, 4);
+    pts.push(polar(rt, a + shoe), polar(rt, a + dt));
+    arc(pts, ry, a + dy, a + pitch / 2, 3);
+  }
+  const shape = new THREE.Shape(pts);
+  const hole = new THREE.Path(); hole.absarc(0, 0, 21, 0, TAU, true); shape.holes.push(hole);
+  const stack = new THREE.Mesh(toY(new THREE.ExtrudeGeometry(shape, { depth: 18, bevelEnabled: true, bevelThickness: 0.4, bevelSize: 0.3, bevelSegments: 2, curveSegments: 4 })), MAT.steel);
+  stack.position.y = 4; stack.castShadow = stack.receiveShadow = true; motor.add(stack);
+  // ---- windings: 36N42P = 3 x (12N14P: A a b B C c a A B b c C)
+  const pattern = [[0, 1], [0, -1], [1, -1], [1, 1], [2, 1], [2, -1], [0, -1], [0, 1], [1, 1], [1, -1], [2, -1], [2, 1]];
+  const coilGeo = new RoundedBoxGeometry(4.5, 21.6, 8.6, 3, 1.5);
+  for (let k = 0; k < 36; k++) {
+    const a = k * pitch, m = new THREE.Mesh(coilGeo, MAT.copper());
+    m.position.set(31.9 * Math.cos(a), 13.0, -31.9 * Math.sin(a)); m.rotation.y = a + Math.PI / 2;
+    m.castShadow = true; m.receiveShadow = true;
+    const [ph, sgn] = pattern[k % 12]; m.userData = { ph, sgn }; coils.push(m); motor.add(m);
+  }
+  // ---- stator hub, base mount (stationary)
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(21, 22.5, 26, 48, 1, true), MAT.alu); hub.position.y = 9; motor.add(hub);
+  const arm = 9, len = 62, cr = 5;                         // four-arm motor mount
+  const outline = [];
+  for (let q = 0; q < 4; q++) { const a = q * Math.PI / 2;
+    const P = (x, y) => new THREE.Vector2(x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a));
+    outline.push(P(arm, -arm), P(len - cr, -arm), P(len, -arm + cr), P(len, arm - cr), P(len - cr, arm)); }
+  const baseShape = new THREE.Shape(outline);
+  for (let q = 0; q < 4; q++) { const a = q * Math.PI / 2; const h = new THREE.Path(); h.absarc((len - 9) * Math.cos(a), (len - 9) * Math.sin(a), 2.2, 0, TAU, true); baseShape.holes.push(h); }
+  const base = new THREE.Mesh(toY(new THREE.ExtrudeGeometry(baseShape, { depth: 3.5, bevelEnabled: true, bevelThickness: 0.6, bevelSize: 0.6, bevelSegments: 2 })), MAT.mount);
+  base.position.y = -6.5; base.castShadow = base.receiveShadow = true; motor.add(base);
+  const plate = new THREE.Mesh(new THREE.CylinderGeometry(26, 26, 3, 64), MAT.mount); plate.position.y = -2.5; motor.add(plate);
+
+  // ---- rotor (bell, magnets, shaft, prop) - one group, rotates about +Y
+  rotor = new THREE.Group();
+  const prof = [[41.6, 0.6], [43.6, 0.6], [43.6, 26.6], [42.8, 28.6], [41.6, 28.6], [41.6, 0.6]].map(([r, y]) => new THREE.Vector2(r, y));
+  const bellSide = new THREE.Mesh(new THREE.LatheGeometry(prof, 160), MAT.bell); bellSide.castShadow = true; rotor.add(bellSide);
+  const ring = new THREE.Mesh(new THREE.LatheGeometry([[43.65, 3.2], [43.7, 3.2], [43.7, 5.2], [43.65, 5.2]].map(([r, y]) => new THREE.Vector2(r, y)), 160), MAT.bellAccent);
+  rotor.add(ring);
+  const cap = new THREE.Shape(); cap.absarc(0, 0, 42.4, 0, TAU, false);
+  for (let k = 0; k < 6; k++) { const a0 = k * TAU / 6 + 0.16, a1 = (k + 1) * TAU / 6 - 0.16, p = new THREE.Path();
+    p.absarc(0, 0, 37, a0, a1, false); p.absarc(0, 0, 18, a1, a0, true); cap.holes.push(p); }
+  const ch = new THREE.Path(); ch.absarc(0, 0, 8, 0, TAU, true); cap.holes.push(ch);
+  const capM = new THREE.Mesh(toY(new THREE.ExtrudeGeometry(cap, { depth: 2.0, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.5, bevelSegments: 3, curveSegments: 48 })), MAT.bell);
+  capM.position.y = 26.6; capM.castShadow = true; rotor.add(capM);
+  const boss = new THREE.Mesh(new THREE.LatheGeometry([[8, 28.6], [15, 28.6], [15, 31.2], [13.5, 32.6], [8, 32.6]].map(([r, y]) => new THREE.Vector2(r, y)), 96), MAT.bell);
+  rotor.add(boss);
+  for (let k = 0; k < 42; k++) {                                          // 42 arc magnets, alternating N/S
+    const span = TAU / 42, a0 = k * span + 0.006, a1 = (k + 1) * span - 0.006, s = new THREE.Shape();
+    const p = []; arc(p, 41.55, a0, a1, 6); arc(p, 38.95, a1, a0, 6); s.setFromPoints(p);
+    const g = toY(new THREE.ExtrudeGeometry(s, { depth: 20, bevelEnabled: false, curveSegments: 6 }));
+    const mm = new THREE.Mesh(g, MAT.magnet()); mm.position.y = 3.8; mm.userData.n = k % 2 === 0; mm.castShadow = true;
+    magnets.push(mm); rotor.add(mm);
+  }
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(7.5, 7.5, 40, 48), MAT.shaft); shaft.position.y = 14; rotor.add(shaft);
+  // prop hub (the G28 blades are 711 mm across, far outside the frame; their load is in the physics)
+  const prop = new THREE.Group(); prop.name = 'prop';
+  const phub = new THREE.Mesh(new THREE.CylinderGeometry(15, 15, 9, 48), MAT.carbon); phub.position.y = 37.2; prop.add(phub);
+  for (let k = 0; k < 4; k++) { const bolt = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.9, 1.6, 6), MAT.bolt);
+    const a = k * Math.PI / 2 + Math.PI / 4; bolt.position.set(10.5 * Math.cos(a), 42.4, 10.5 * Math.sin(a)); prop.add(bolt); }
+  rotor.add(prop);
+  motor.add(rotor);
+  return motor;
+}
+
+function initScene() {
+  if (!renderer) return;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.localClippingEnabled = true;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+  const pm = new THREE.PMREMGenerator(renderer);
+  scene.environment = pm.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+  scene.environmentIntensity = 0.8;
+  scene.add(new THREE.HemisphereLight(0xdfe8f0, 0x1a1c1e, 0.35));
+  const key = new THREE.DirectionalLight(0xffffff, 1.8); key.position.set(160, 260, 120); key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048); Object.assign(key.shadow.camera, { left: -180, right: 180, top: 180, bottom: -180, near: 50, far: 700 });
+  key.shadow.bias = -0.0004; scene.add(key);
+  const rim = new THREE.DirectionalLight(0x9fc3ff, 1.1); rim.position.set(-220, 120, -200); scene.add(rim);
+  const warm = new THREE.PointLight(0xffb27a, 140, 420, 2); warm.position.set(-90, 40, 120); scene.add(warm);
+  const ground = new THREE.Mesh(new THREE.CircleGeometry(900, 64), new THREE.ShadowMaterial({ opacity: 0.32 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.y = -8.2; ground.receiveShadow = true; scene.add(ground);
+  scene.add(buildMotor());
+  controls = new OrbitControls(camera, canvas); controls.target.set(0, 14, 0); controls.enableDamping = true;
+  controls.minDistance = 90; controls.maxDistance = 700; controls.maxPolarAngle = Math.PI * 0.62; controls.update();
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  after = new AfterimagePass(0.0); after.enabled = false; composer.addPass(after);
+  bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.5, 0.28, 0.96); composer.addPass(bloom);
+  composer.addPass(new OutputPass());
+  applyTheme();
+  new ResizeObserver(resize).observe(stageEl); resize();
+}
+function resize() { if (!renderer) return; const w = stageEl.clientWidth, h = stageEl.clientHeight;
+  renderer.setSize(w, h, false); composer.setSize(w, h); camera.aspect = w / Math.max(1, h); camera.updateProjectionMatrix(); }
+function applyTheme() { if (!renderer) return; const c = new THREE.Color(css('--stage')); scene.background = c;
+  scene.fog = new THREE.Fog(c, 520, 1400); }
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { applyTheme(); });
+new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+// ======================================================================= visual state -> scene
+let coilMode = 'phase', showPoles = false;
+const phaseCol = () => [new THREE.Color(css('--ph-a')), new THREE.Color(css('--ph-b')), new THREE.Color(css('--ph-c'))];
+let PC = phaseCol();
+const heatCol = new THREE.Color(0xff6a1f), black = new THREE.Color(0, 0, 0);
+function updateScene(dThetaFrame) {
+  if (!rotor) return;
+  rotor.rotation.y = S.thMech;
+  const ip = [S.ia, S.ib, S.ic];
+  for (const c of coils) {
+    const i = ip[c.userData.ph] * c.userData.sgn, mat = c.material;
+    if (coilMode === 'phase') { const x = Math.min(2.2, Math.abs(i) / 18); mat.emissive.copy(PC[c.userData.ph]).multiplyScalar(x * (i > 0 ? 1.0 : 0.55)); }
+    else if (coilMode === 'heat') { const x = Math.min(2.4, 1.6 * (i / 26) ** 2); mat.emissive.copy(heatCol).multiplyScalar(x); }
+    else mat.emissive.copy(black);
+  }
+  // motion blur only when the rotor moves more than ~a third of a magnet per frame
+  const blur = Math.abs(dThetaFrame) / (TAU / 42);
+  if (after) { after.enabled = !reduceMotion && blur > 0.35; after.uniforms.damp.value = Math.min(0.88, 0.55 + blur * 0.1); }
+}
+function setPoles(on) { showPoles = on; for (const m of magnets) { m.material.color.set(on ? (m.userData.n ? 0xc4564e : 0x4d78c4) : 0xb9bdc2); } }
+
+// ======================================================================= instruments
+const ph = $('phasor'), pg = ph.getContext('2d'), sc = $('scope'), sg = sc.getContext('2d');
+function arrow(g, x0, y0, x1, y1, col, w) { const a = Math.atan2(y1 - y0, x1 - x0), L = Math.hypot(x1 - x0, y1 - y0); if (L < 2) return;
+  g.strokeStyle = col; g.fillStyle = col; g.lineWidth = w; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1 - 14 * Math.cos(a), y1 - 14 * Math.sin(a)); g.stroke();
+  g.beginPath(); g.moveTo(x1, y1); g.lineTo(x1 - 18 * Math.cos(a - 0.35), y1 - 18 * Math.sin(a - 0.35)); g.lineTo(x1 - 18 * Math.cos(a + 0.35), y1 - 18 * Math.sin(a + 0.35)); g.closePath(); g.fill(); }
+function drawPhasor() {
+  const W = ph.width, H = ph.height, cx = W / 2, cy = H / 2, R = H * 0.42;
+  pg.clearRect(0, 0, W, H);
+  const line = css('--line'), muted = css('--muted'), fg = css('--fg');
+  pg.strokeStyle = line; pg.lineWidth = 2; pg.beginPath(); pg.arc(cx, cy, R, 0, TAU); pg.stroke();
+  pg.beginPath(); pg.moveTo(cx - R - 14, cy); pg.lineTo(cx + R + 14, cy); pg.moveTo(cx, cy - R - 14); pg.lineTo(cx, cy + R + 14); pg.stroke();
+  pg.fillStyle = muted; pg.font = '500 22px ' + css('--f-mono'); pg.fillText('α', cx + R + 18, cy + 8); pg.fillText('β', cx + 8, cy - R - 16);
+  // rotor d axis (flux) and q axis
+  const th = S.thD;
+  pg.setLineDash([8, 8]); pg.strokeStyle = muted; pg.lineWidth = 2; pg.beginPath(); pg.moveTo(cx, cy);
+  pg.lineTo(cx + R * Math.cos(th + Math.PI / 2), cy - R * Math.sin(th + Math.PI / 2)); pg.stroke(); pg.setLineDash([]);
+  arrow(pg, cx, cy, cx + R * 0.82 * Math.cos(th), cy - R * 0.82 * Math.sin(th), css('--copper'), 5);
+  // current vector: alpha/beta from phase currents (amplitude invariant)
+  const ia = (2 * S.ia - S.ib - S.ic) / 3, ib = (S.ib - S.ic) / SQ3, im = Math.hypot(ia, ib), sI = R / 40;
+  arrow(pg, cx, cy, cx + ia * sI, cy - ib * sI, fg, 5);
+  if (S.hasV) { const va = S.vd * Math.cos(th) - S.vq * Math.sin(th), vb = S.vd * Math.sin(th) + S.vq * Math.cos(th), sV = R / 30;
+    arrow(pg, cx, cy, cx + va * sV, cy - vb * sV, css('--ph-c'), 3); }
+  pg.fillStyle = muted; pg.font = '500 20px ' + css('--f-mono');
+  pg.fillText('|i| ' + im.toFixed(1) + ' A', 16, H - 16);
+  const ang = im > 0.5 ? (((Math.atan2(ib, ia) - th) * 180 / Math.PI) % 360 + 540) % 360 - 180 : NaN;
+  $('tangle').textContent = isNaN(ang) ? 'torque angle –' : 'torque angle ' + ang.toFixed(0) + '°';
+}
+function drawScope() {
+  const W = sc.width, H = sc.height, padL = 52, padB = 30, pw = W - padL - 8, phh = H - padB - 10;
+  sg.clearRect(0, 0, W, H);
+  const fe = Math.abs(S.rpm) / 60 * M.pp;
+  const win = Math.min(0.04, Math.max(0.002, fe > 1 ? 3 / fe : 0.04));
+  $('scopeWin').textContent = 'window ' + (win * 1e3).toFixed(win < 0.01 ? 1 : 0) + ' ms';
+  let amp = 5; const n = rbN, tEnd = n ? rbT[(rbW - 1 + RB) % RB] : 0;
+  for (let k = 0; k < n; k++) { const j = (rbW - 1 - k + RB) % RB; if (tEnd - rbT[j] > win) break;
+    amp = Math.max(amp, Math.abs(rbA[j]), Math.abs(rbB[j]), Math.abs(rbC[j])); }
+  amp = Math.ceil(amp / 5) * 5;
+  const line = css('--line'), muted = css('--muted');
+  sg.strokeStyle = line; sg.lineWidth = 1; sg.fillStyle = muted; sg.font = '500 18px ' + css('--f-mono');
+  for (let k = -2; k <= 2; k++) { const y = 10 + phh / 2 - k * phh / 4; sg.beginPath(); sg.moveTo(padL, y); sg.lineTo(W - 8, y); sg.stroke();
+    sg.fillText(String(k * amp / 2), 4, y + 6); }
+  sg.fillText('A', 4, H - 6); sg.fillText('−' + (win * 1e3).toFixed(1) + ' ms', padL, H - 6); sg.fillText('now', W - 48, H - 6);
+  const cols = [css('--ph-a'), css('--ph-b'), css('--ph-c')], arrs = [rbA, rbB, rbC];
+  for (let p = 0; p < 3; p++) { sg.strokeStyle = cols[p]; sg.lineWidth = 3; sg.beginPath(); let first = true;
+    for (let k = n - 1; k >= 0; k--) { const j = (rbW - 1 - k + RB) % RB, dt = tEnd - rbT[j]; if (dt > win) continue;
+      const x = padL + pw * (1 - dt / win), y = 10 + phh / 2 - arrs[p][j] / amp * phh / 2;
+      if (first) { sg.moveTo(x, y); first = false; } else sg.lineTo(x, y); }
+    sg.stroke(); }
+}
+function fmt(id, v, d, unit) { $(id).innerHTML = v.toFixed(d) + '<small>' + unit + '</small>'; }
+function updateReadouts() {
+  $('rpm').textContent = Math.round(S.rpm).toLocaleString('en-US');
+  fmt('torque', S.torque, 2, 'N·m'); fmt('pbat', S.vbus * S.ibatt, 0, 'W'); fmt('vbus', S.vbus, 1, 'V');
+  fmt('iq', S.iq, 1, 'A'); fmt('id', S.id, 1, 'A'); fmt('ibat', S.ibatt, 1, 'A');
+  fmt('fe', Math.abs(S.rpm) / 60 * M.pp, 0, 'Hz'); fmt('temp', S.temp, 1, '°C'); fmt('simt', S.t, 2, 's');
+}
+
+// ======================================================================= sources
+function pullSim() {
+  const ip = twin.phaseCurrents();
+  Object.assign(S, { t: twin.t, rpm: twin.w * 60 / TAU, thMech: twin.th, thD: M.pp * twin.th, ia: ip[0], ib: ip[1], ic: ip[2],
+    id: twin.id, iq: twin.iq, vd: twin.vd, vq: twin.vq, hasV: true, torque: twin.Te, vbus: twin.vbus, ibatt: twin.ibatt, temp: twin.Tw });
+}
+let ws = null, wsTimer = null;
+function setPill(text, state) { $('pillText').textContent = text; $('pillDot').className = 'dot' + (state ? ' ' + state : ''); }
+function connectLive() {
+  const host = /^(127\.0\.0\.1|localhost)(:\d+)?$/.test(location.host) ? location.host : '127.0.0.1:8765';
+  setPill('Connecting to ' + host + ' …', 'warn');
+  try { ws = new WebSocket('ws://' + host + '/ws'); }
+  catch (e) { liveUnavailable(host); return; }
+  ws.onmessage = (ev) => { const f = JSON.parse(ev.data); if (f.type !== 'frame') { setPill('Bridge up · waiting for bldc_sim.py', 'warn'); return; }
+    const thD = f.theta_e - Math.PI, a = (2 * f.ia - f.ib - f.ic) / 3, b = (f.ib - f.ic) / SQ3;
+    Object.assign(S, { t: f.t, rpm: f.rpm, thMech: f.theta_unwrapped / M.pp, thD, ia: f.ia, ib: f.ib, ic: f.ic,
+      id: a * Math.cos(thD) + b * Math.sin(thD), iq: -a * Math.sin(thD) + b * Math.cos(thD), hasV: false,
+      torque: f.torque, vbus: f.vbus, ibatt: f.ibatt, temp: f.temp });
+    const w = f.wave; for (let k = 0; k < w.t.length; k++) rbPush(w.t[k], w.ia[k], w.ib[k], w.ic[k]);
+    setPill(f.live ? 'Live · Python twin · ' + host : 'Live · sim paused', f.live ? '' : 'warn'); };
+  ws.onclose = () => { if (S.src === 'live') liveUnavailable(host); };
+  ws.onerror = () => {};
+}
+function liveUnavailable(host) {
+  setPill('Live needs the local bridge', 'bad');
+  $('stageNote').textContent = 'Run  python viz_bridge.py  next to bldc_sim.py, then open http://' + host + ' (a hosted page cannot reach your computer).';
+  clearTimeout(wsTimer); wsTimer = setTimeout(() => { if (S.src === 'live') connectLive(); }, 3000);
+}
+function setSource(src) {
+  S.src = src; $('srcSim').setAttribute('aria-pressed', src === 'sim'); $('srcLive').setAttribute('aria-pressed', src === 'live');
+  for (const g of ['grpMode', 'grpSet', 'grpLoad', 'grpTime']) $(g).style.opacity = src === 'sim' ? '' : '0.45';
+  for (const g of ['grpMode', 'grpSet', 'grpLoad', 'grpTime']) for (const el of $(g).querySelectorAll('button,input,select')) el.disabled = src !== 'sim';
+  rbN = 0;
+  if (src === 'live') { $('plateSrc').textContent = 'live · bldc_sim.py probe stream'; connectLive(); }
+  else { if (ws) { ws.onclose = null; ws.close(); ws = null; } clearTimeout(wsTimer);
+    $('plateSrc').textContent = 'built-in twin · FOC · 20 kHz'; $('stageNote').textContent = 'Drag to orbit · scroll to zoom'; updatePill(); }
+}
+function updatePill() { if (S.src !== 'sim') return; const opt = $('tscale').selectedOptions[0].textContent;
+  setPill(paused ? 'Built-in twin · paused' : 'Built-in twin · ' + (opt === 'real time' ? 'real time' : opt + ' speed'), paused ? 'warn' : ''); }
+
+// ======================================================================= controls
+function press(id, on) { $(id).setAttribute('aria-pressed', on); }
+function setMode(m) { twin.mode = m; press('modeSpeed', m === 'speed'); press('modeTorque', m === 'torque');
+  const s = $('set');
+  if (m === 'speed') { s.max = 5500; s.step = 10; s.value = twin.rpmRef; twin.uiw = twin.iq; }
+  else { s.max = 40; s.step = 0.5; s.value = twin.iqRef; }
+  showSet(); }
+function showSet() { const v = +$('set').value;
+  if (twin.mode === 'speed') { twin.rpmRef = v; $('setLab').textContent = 'Speed'; $('setVal').textContent = v.toFixed(0) + ' rpm'; }
+  else { twin.iqRef = v; $('setLab').textContent = 'Torque current'; $('setVal').textContent = v.toFixed(1) + ' A'; } }
+$('srcSim').onclick = () => setSource('sim'); $('srcLive').onclick = () => setSource('live');
+$('modeSpeed').onclick = () => setMode('speed'); $('modeTorque').onclick = () => setMode('torque');
+$('set').oninput = showSet;
+$('prop').onclick = () => { twin.prop = !twin.prop; twin.retune(); press('prop', twin.prop); const p = rotor && rotor.getObjectByName('prop'); if (p) p.visible = twin.prop; };
+$('gust').onclick = () => { twin.gust = !twin.gust; press('gust', twin.gust); };
+$('tscale').onchange = () => { tscale = +$('tscale').value; updatePill(); };
+$('pause').onclick = () => { paused = !paused; press('pause', paused); $('pause').textContent = paused ? 'Run' : 'Pause'; updatePill(); };
+$('cut').onclick = () => { const on = $('cut').getAttribute('aria-pressed') !== 'true'; press('cut', on);
+  clipPlane.constant = on ? 0 : 1e5; };
+for (const [id, mode] of [['coilPhase', 'phase'], ['coilHeat', 'heat'], ['coilOff', 'off']])
+  $(id).onclick = () => { coilMode = mode; press('coilPhase', mode === 'phase'); press('coilHeat', mode === 'heat'); press('coilOff', mode === 'off'); };
+$('poles').onclick = () => { setPoles(!showPoles); press('poles', showPoles); };
+$('orbit').onclick = () => { const on = $('orbit').getAttribute('aria-pressed') !== 'true'; press('orbit', on); if (controls) { controls.autoRotate = on; controls.autoRotateSpeed = 0.6; } };
+new MutationObserver(() => { PC = phaseCol(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { PC = phaseCol(); });
+
+// ======================================================================= main loop
+initScene();
+// open in a realistic working state: spun up to 2500 rpm with the prop, running at 1/50 speed
+for (let k = 0; k < 2.5 / twin.Ts; k++) twin.step();
+pullSim();
+let last = performance.now(), lastUi = 0, lastTh = S.thMech, lastRec = -1;
+function frame(now) {
+  const dtw = Math.min(0.05, (now - last) / 1000); last = now;
+  if (S.src === 'sim' && !paused) {
+    const n = Math.min(8000, Math.round(dtw * tscale / twin.Ts));
+    const rec = Math.max(1, Math.round(n / 1500));
+    for (let k = 0; k < n; k++) { twin.step(); if (++lastRec % rec === 0) { const ip = twin.phaseCurrents(); rbPush(twin.t, ip[0], ip[1], ip[2]); } }
+    pullSim();
+  }
+  const dTh = S.thMech - lastTh; lastTh = S.thMech;
+  updateScene(dTh);
+  if (controls) controls.update();
+  if (composer) composer.render();
+  if (now - lastUi > 90) { lastUi = now; updateReadouts(); drawPhasor(); drawScope(); }
+  requestAnimationFrame(frame);
+}
+setMode('speed'); updatePill();
+requestAnimationFrame(frame);
+</script>

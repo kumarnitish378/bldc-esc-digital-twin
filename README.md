@@ -1,11 +1,14 @@
-# BLDC Motor + 12-Channel Oscilloscope Digital Twins (Python)
+# BLDC Motor + ESC Digital Twin — FOC, 12-Channel Scope, 3-D Web Visualizer
 
 [![tests](https://github.com/kumarnitish378/bldc-esc-digital-twin/actions/workflows/tests.yml/badge.svg)](https://github.com/kumarnitish378/bldc-esc-digital-twin/actions/workflows/tests.yml)
 
-A test bench for developing ESC (electronic speed controller) firmware without hardware: a physics-based
-BLDC motor + inverter + battery you drive with real gate signals, and a 12-channel scope to debug it.
+A test bench for developing ESC (electronic speed controller) firmware without hardware. It has five parts:
+- **Motor twin:** a physics-based BLDC motor + inverter + battery that you drive with real gate signals.
+- **FOC ESC:** a field-oriented-control ESC with encoder and sensorless modes, tested against a T-Motor U8 II KV100 model built from the datasheet ([test report](docs/FOC_TEST_REPORT.md)).
+- **12-channel scope** to debug both the motor and your ESC.
+- **3-D web visualizer** that shows the motor running, live.
 
-![12-channel scope at 20 µs/div, triggered on gate AH during a commutation](docs/scope_pwm_commutation.png)
+![3-D web motor visualizer: U8 II KV100 under FOC, windings lit by phase current](docs/web_visualizer.png)
 
 A configurable, physics-based BLDC motor + 3-phase inverter + DC-bus simulator. Your **ESC program** (a separate process, any language) drives it with **6 gate signals (AH AL BH BL CH CL)** or 3 phase duties, and gets back **phase currents, bus/battery current, RPM**, terminal voltages (for sensorless BEMF), hall bits, torque, temperature and faults.
 
@@ -19,6 +22,15 @@ python example_udp_esc.py               # example external ESC (lock-step), publ
 python bldc_sim.py --demo 0.5           # or spin the motor with the built-in 6-step ESC
 python example_inprocess_pwm.py         # ESC + motor in one process, real 20 kHz gate PWM, streamed to the scope
 python bldc_sim.py motor_57bly_24v.json # another motor
+
+# FOC ESC on the T-Motor U8 II KV100 model
+python bldc_sim.py motor_tmotor_u8ii_kv100.json
+python foc_esc.py --rpm 3000            # encoder FOC (auto encoder alignment)    [2nd terminal]
+python foc_esc.py --sensorless --rpm 2500   # sensorless FOC (I/f start -> flux observer)
+python foc_tests.py                     # full FOC test campaign -> docs/foc_report/ + docs/FOC_TEST_REPORT.md
+
+# 3-D web visualizer (live view of whatever the sim is doing)
+python viz_bridge.py                    # then open http://127.0.0.1:8765
 ```
 
 ## Files
@@ -33,7 +45,13 @@ python bldc_sim.py motor_57bly_24v.json # another motor
 | `scope12.py` | 12-channel oscilloscope digital twin UI (PyQt + pyqtgraph) |
 | `scope_core.py` | scope acquisition memory, UDP receiver, trigger / peak-detect / measurement DSP (no GUI) |
 | `scope_probe.py` | probe library: `ScopeProbe` (put in your ESC code), `MotorProbe`, packet format |
-| `tests/` | pytest suite: motor physics vs theory, protocol, scope DSP, UDP server robustness |
+| `foc_esc.py` | **FOC ESC**: dq current control, SVPWM, speed loop, field weakening, encoder + sensorless observer, motor detection; UDP runner |
+| `foc_bench.py`, `foc_tests.py` | in-process ESC + motor bench and the FOC test campaign (plots + `results.json`) |
+| `motor_tmotor_u8ii_kv100.json` | T-Motor U8 II KV100 (36N42P, 12S) + G28×9.2 prop, from the T-Motor datasheet |
+| `docs/FOC_TEST_REPORT.md` | FOC test report: detection, loop responses, datasheet validation, ripple vs 6-step, sensorless, regen, protections |
+| `web/motor_visualizer.html` | **3-D web motor visualizer** (Three.js, single file): built-in FOC twin or live data |
+| `viz_bridge.py` | serves the visualizer and streams the running sim to it over WebSocket (no extra packages) |
+| `tests/` | pytest suite: motor physics vs theory, protocol, scope DSP, UDP server robustness, FOC loops |
 
 ## Screenshots
 | Motor digital twin (`bldc_sim.py`) | Scope with motor + ESC probes in lock-step |
@@ -193,3 +211,51 @@ Measured on a 2-core test machine:
 - The scope runs at about 50 fps with 12 channels at 1 ms/div (100 kS/s source).
 - At 100 ms/div (100 k points per channel on screen) it takes about 14 ms per frame.
 - Streaming every physics step costs the motor sim about 10% real-time speed; `--sim-decim` reduces that, and lock-step results are unaffected either way.
+
+## FOC ESC (`foc_esc.py`)
+A field-oriented-control ESC written like MCU firmware. Each call takes one PWM period's current samples, the bus voltage and (optionally) the encoder angle, and returns three duties.
+
+**Control:**
+- **Current loops:** Clarke/Park transforms; d/q PI current loops (1 kHz, tuned by pole-zero cancellation) with back-EMF and cross-coupling feed-forward.
+- **Modulation:** SVPWM with voltage-circle limiting and anti-windup, plus a real one-period computation delay with 1.5·Ts angle compensation.
+- **Speed loop:** decimated speed PI with slew limit; current-vector and regen limits.
+- **Field weakening** for speeds above base speed.
+
+**Angle sources:**
+- **Encoder** (14-bit) with automatic offset alignment.
+- **Sensorless:** Ortega non-linear flux observer + PLL, with an I/f open-loop start and smooth handover.
+
+**Motor detection:** measures R, L and flux linkage the way production ESCs do, and tunes all the loops from the result.
+
+**Results** on the T-Motor U8 II KV100 + G28×9.2 prop twin ([full report with plots](docs/FOC_TEST_REPORT.md)):
+
+| | Result |
+|---|---|
+| Motor detection | R +0.14 %, L +0.92 %, λ −0.53 % |
+| Battery current vs T-Motor datasheet | within 0–3 % from 40 % to 80 % throttle |
+| Torque ripple at the same speed | FOC 1.3 % peak-to-peak vs 6-step 44 %; FOC draws 2.8 % less battery current |
+| Load step (+0.5 N·m at 2500 rpm) | 35 rpm dip, back within ±10 rpm in 0.18 s |
+| Sensorless | starts from standstill with the prop; angle error ≤ 0.7° up to 3500 rpm |
+| Field weakening (no prop) | top speed 4386 → 5500 rpm |
+
+Use it as a starting point for your own ESC. The controller has no simulator imports, so the same logic ports to C on an STM32.
+
+## 3-D web motor visualizer (`web/motor_visualizer.html`)
+A browser view of the motor in physically-based 3-D (Three.js):
+- **Geometry:** 36-tooth laminated stator with T-shaped teeth, 36 copper windings in the real 36N42P pattern (3 × 12N14P), 42 nickel-plated arc magnets, a vented anodized bell, and the mount.
+- **Windings light up from the actual phase currents:** *Phases* mode colours each phase; *Heat* mode shows I² losses. You see the stator field rotate in step with the rotor.
+- **Cutaway** to see inside, an **N/S pole** overlay, orbit and zoom.
+- **Instrument rack:** speed, torque, battery power, iq/id, electrical frequency and winding temperature; a live **space-vector diagram** (rotor flux, current and voltage vectors, torque angle); and a **three-phase current scope**.
+
+Two data sources:
+- **Built-in twin:** the U8 II KV100 with the same FOC control laws runs inside the page, so it works on its own (open the file through `viz_bridge.py`, or any static server). Controls cover speed or torque (iq) control, prop on/off, a +0.5 N·m load step, and slow motion from 1/200 to real time.
+- **Live (Python):** `viz_bridge.py` subscribes to `bldc_sim.py`'s probe stream (the same mechanism as the scope) and streams it to the page over WebSocket. Whatever ESC is driving the sim (`foc_esc.py`, `example_udp_esc.py`, the built-in 6-step, your own) shows up in 3-D. Use the sim's slow-motion keys (`,` and `.`) to slow the rotor down.
+
+```
+python bldc_sim.py motor_tmotor_u8ii_kv100.json
+python foc_esc.py --rpm 2000 --seconds 60
+python viz_bridge.py            # open http://127.0.0.1:8765 and choose "Live (Python)"
+```
+![live mode streaming the Python twin](docs/web_visualizer_live.png)
+
+The page loads Three.js and its fonts from public CDNs, so the browser needs internet access. Everything else is local.
