@@ -1,7 +1,7 @@
 {
  "ident": {
   "R": 0.08805959093375308,
-  "L": 3.7340780370672485e-05,
+  "L": 3.734078037067248e-05,
   "flux": 0.0027346303697811164,
   "R_true": 0.08793534000000001,
   "L_true": 3.7e-05,
@@ -16,137 +16,137 @@
  },
  "current_step_standstill": {
   "rise_s": 0.00015000000000004593,
-  "overshoot_pct": 2.6730007563362967,
+  "overshoot_pct": 2.673000756336319,
   "settle_s": 0.0005000000000007637,
-  "id_peak_coupling_A": 0.15199172156443608
+  "id_peak_coupling_A": 0.15199172156443008
  },
  "current_step_3000rpm": {
   "rise_s": 0.00019999999999242846,
-  "overshoot_pct": 13.82477236310493,
+  "overshoot_pct": 13.826403231751105,
   "settle_s": 0.001349999999873397,
-  "id_peak_coupling_A": 1.5938064475905573,
+  "id_peak_coupling_A": 1.5950186768072765,
   "rpm": 3000
  },
  "speed_step": {
   "rise_s": 0.28924999998904966,
-  "overshoot_pct": 2.9145609348407264,
+  "overshoot_pct": 2.9146005376926576,
   "settle_s": 0.48884999997392153,
-  "iq_peak_A": 34.70328431323344,
+  "iq_peak_A": 34.7032585614447,
   "accel_limit_rpm_s": 4000,
-  "tracking_err_rpm_rms_during_ramp": 40.59576517944661
+  "tracking_err_rpm_rms_during_ramp": 40.595787980645696
  },
  "load_step": {
   "load_step_nm": 0.5,
-  "speed_dip_rpm": 34.91508949283434,
+  "speed_dip_rpm": 34.91621479948981,
   "recovery_to_10rpm_s": 0.18479999998543234,
-  "iq_before": 15.54477097954044,
-  "iq_after": 21.400578734145412
+  "iq_before": 15.5448963390669,
+  "iq_after": 21.398471485743567
  },
  "datasheet": [
   {
    "throttle": 40,
    "rpm": 1896,
    "ds_torque": 0.77,
-   "sim_torque": 0.7201136332434935,
+   "sim_torque": 0.7201136330860186,
    "ds_current": 3.5,
-   "sim_current": 3.500988689650045,
+   "sim_current": 3.500988686977375,
    "ds_power": 168,
-   "sim_power": 168.04745710320216,
-   "sim_iphase_rms": 6.484047214003745,
-   "sim_eff": 0.8508167651051277
+   "sim_power": 168.04745697491398,
+   "sim_iphase_rms": 6.484047214039513,
+   "sim_eff": 0.850816765568588
   },
   {
    "throttle": 50,
    "rpm": 2268,
    "ds_torque": 1.08,
-   "sim_torque": 1.0304129198587586,
+   "sim_torque": 1.030412905930823,
    "ds_current": 6.0,
-   "sim_current": 5.952764709345093,
+   "sim_current": 5.952770766788272,
    "ds_power": 288,
-   "sim_power": 285.73270604856447,
-   "sim_iphase_rms": 9.113733543880773,
-   "sim_eff": 0.856491405619284
+   "sim_power": 285.73299680583705,
+   "sim_iphase_rms": 9.11373515414941,
+   "sim_eff": 0.8564905224904401
   },
   {
    "throttle": 60,
    "rpm": 2581,
    "ds_torque": 1.35,
-   "sim_torque": 1.3344408210526988,
+   "sim_torque": 1.3344407562565612,
    "ds_current": 8.9,
-   "sim_current": 8.779022845054538,
+   "sim_current": 8.779017476247306,
    "ds_power": 427,
-   "sim_power": 421.3930965626178,
-   "sim_iphase_rms": 11.693358941389867,
-   "sim_eff": 0.8559108360912201
+   "sim_power": 421.3928388598707,
+   "sim_iphase_rms": 11.693344510021792,
+   "sim_eff": 0.8559113179631116
   },
   {
    "throttle": 70,
    "rpm": 2858,
    "ds_torque": 1.6,
-   "sim_torque": 1.6362382602739514,
+   "sim_torque": 1.6362379027046252,
    "ds_current": 12.2,
-   "sim_current": 11.967252230281554,
+   "sim_current": 11.967238578724203,
    "ds_power": 586,
-   "sim_power": 574.4281070535146,
-   "sim_iphase_rms": 14.2770167095898,
-   "sim_eff": 0.8525143617733306
+   "sim_power": 574.4274517787617,
+   "sim_iphase_rms": 14.277017726824962,
+   "sim_eff": 0.8525151479727867
   },
   {
    "throttle": 80,
    "rpm": 3122,
    "ds_torque": 1.87,
-   "sim_torque": 1.9524802816591234,
+   "sim_torque": 1.9524804361056114,
    "ds_current": 16.2,
-   "sim_current": 15.696058088833105,
+   "sim_current": 15.696026378296848,
    "ds_power": 778,
-   "sim_power": 753.410788263989,
-   "sim_iphase_rms": 17.00137881355171,
-   "sim_eff": 0.8472592883030972
+   "sim_power": 753.4092661582487,
+   "sim_iphase_rms": 17.00130395640834,
+   "sim_eff": 0.8472610670338092
   },
   {
    "throttle": 90,
    "rpm": 3379,
    "ds_torque": 2.21,
-   "sim_torque": 2.2871380283775964,
+   "sim_torque": 2.28713782725788,
    "ds_current": 21.4,
-   "sim_current": 20.062648583720584,
+   "sim_current": 20.06264872917008,
    "ds_power": 1027,
-   "sim_power": 963.007132018588,
-   "sim_iphase_rms": 19.909658882330547,
-   "sim_eff": 0.8403876880501716
+   "sim_power": 963.0071390001638,
+   "sim_iphase_rms": 19.90964653293922,
+   "sim_eff": 0.8403876080579813
   },
   {
    "throttle": 100,
    "rpm": 3709,
-   "sim_rpm_full": 3619.445446145283,
+   "sim_rpm_full": 3619.422468443355,
    "ds_torque": 2.73,
-   "sim_torque": 2.6242692738601607,
+   "sim_torque": 2.6242359606993717,
    "ds_current": 29.3,
-   "sim_current": 24.95229142379578,
+   "sim_current": 24.951286611645,
    "ds_power": 1406,
-   "sim_power": 1197.7099883421974,
-   "sim_iphase_rms": 22.94416644340689,
-   "sim_eff": 0.8304765565076251
+   "sim_power": 1197.66175735896,
+   "sim_iphase_rms": 22.943121281273687,
+   "sim_eff": 0.8304941855346866
   }
  ],
  "ripple": {
   "six_step": {
    "rpm": 2434.206420612694,
    "torque_mean": 1.2650188800873414,
-   "torque_ripple_pkpk_pct": 44.3400040561422,
+   "torque_ripple_pkpk_pct": 44.34000405614223,
    "torque_ripple_rms_pct": 11.474729513037,
-   "current_thd_pct": 29.61456411955046,
+   "current_thd_pct": 29.61456411955047,
    "ibatt": 7.573968153739799,
-   "iphase_rms": 10.885343183054909
+   "iphase_rms": 10.885343183054907
   },
   "foc": {
-   "rpm": 2434.2092280144934,
-   "torque_mean": 1.273194063204102,
-   "torque_ripple_pkpk_pct": 1.2937492098409682,
-   "torque_ripple_rms_pct": 0.20815537323182867,
-   "current_thd_pct": 0.0553345059021842,
-   "ibatt": 7.3574946427766115,
-   "iphase_rms": 10.447517632405113
+   "rpm": 2434.2092539388254,
+   "torque_mean": 1.273194334575966,
+   "torque_ripple_pkpk_pct": 1.324194168377376,
+   "torque_ripple_rms_pct": 0.20915801356372424,
+   "current_thd_pct": 0.055566972585995675,
+   "ibatt": 7.357494979591817,
+   "iphase_rms": 10.447497374629387
   }
  },
  "sensorless": {
@@ -157,38 +157,38 @@
   "angle_vs_speed": [
    {
     "rpm": 600,
-    "angle_err_mean_deg": 0.0035129980303338355,
-    "angle_err_pkpk_deg": 0.08611277915563488,
-    "speed_err_rpm": -0.00044828352706792886
+    "angle_err_mean_deg": 0.003512998030348148,
+    "angle_err_pkpk_deg": 0.08611277915487155,
+    "speed_err_rpm": -0.00044828352708441345
    },
    {
     "rpm": 1000,
-    "angle_err_mean_deg": -0.08248889391153849,
-    "angle_err_pkpk_deg": 0.05816256713415106,
-    "speed_err_rpm": -0.00015439968705817364
+    "angle_err_mean_deg": -0.08248889391153995,
+    "angle_err_pkpk_deg": 0.058162567133158725,
+    "speed_err_rpm": -0.00015439968715793385
    },
    {
     "rpm": 2000,
-    "angle_err_mean_deg": -0.09066844835385705,
-    "angle_err_pkpk_deg": 0.05282536528932279,
-    "speed_err_rpm": 7.06750339509199e-06
+    "angle_err_mean_deg": -0.09066844835385249,
+    "angle_err_pkpk_deg": 0.05282536528896656,
+    "speed_err_rpm": 7.067503427606425e-06
    },
    {
     "rpm": 3000,
-    "angle_err_mean_deg": 0.2673355209109235,
-    "angle_err_pkpk_deg": 0.038381519933194996,
-    "speed_err_rpm": -0.0002112770213470867
+    "angle_err_mean_deg": 0.26733552091092966,
+    "angle_err_pkpk_deg": 0.03838151993350031,
+    "speed_err_rpm": -0.0002112770217653406
    },
    {
     "rpm": 3500,
-    "angle_err_mean_deg": 0.7005005175128981,
-    "angle_err_pkpk_deg": 0.04462687811015076,
-    "speed_err_rpm": -0.000840716409677043
+    "angle_err_mean_deg": 0.7005005175129111,
+    "angle_err_pkpk_deg": 0.04462687811004895,
+    "speed_err_rpm": -0.0008407164096793168
    }
   ],
   "load_step": {
-   "speed_dip_rpm": 35.48844977826525,
-   "max_angle_err_deg": 0.6240505794203695
+   "speed_dip_rpm": 35.488449778265476,
+   "max_angle_err_deg": 0.6240505794203186
   },
   "observer_gain": 267443920.7713378,
   "pll_bw_hz": 80.0
@@ -196,31 +196,31 @@
  "regen": {
   "from_rpm": 3500,
   "to_rpm": 1000,
-  "decel_time_s": 0.3778999999819078,
-  "min_iq_A": -20.201847303285604,
-  "min_ibatt_A": -11.203854525794874,
-  "max_vbus_V": 48.21785776105149,
-  "energy_recovered_J": 74.56372779308742,
+  "decel_time_s": 0.3785499999818832,
+  "min_iq_A": -20.20179863079888,
+  "min_ibatt_A": -11.202955544059314,
+  "max_vbus_V": 48.217845866003344,
+  "energy_recovered_J": 74.53753073428908,
   "regen_limit_A": 20.0
  },
  "locked_rotor": {
   "i_limit_A": 40.0,
-  "max_current_vector_A": 40.18153466678824,
-  "max_phase_current_A": 35.52028493462908,
+  "max_current_vector_A": 40.181534666788245,
+  "max_phase_current_A": 35.520284934629096,
   "copper_loss_W": 204.00000000000003,
   "winding_heating_K_per_s": 2.5500000000000003,
   "time_to_150C_s": 73.1074200188412
  },
  "field_weakening": {
   "without_fw": {
-   "max_rpm": 4386.103420627294,
-   "id_A": -0.00015738577432705035,
-   "ibatt_A": 1.1340331876013061
+   "max_rpm": 4386.103424064122,
+   "id_A": -0.00015701003279613702,
+   "ibatt_A": 1.1340324885600763
   },
   "with_fw": {
-   "max_rpm": 5500.061050540287,
-   "id_A": -16.74066538339481,
-   "ibatt_A": 2.7687166459644166
+   "max_rpm": 5500.068133331027,
+   "id_A": -16.740754489451746,
+   "ibatt_A": 2.7684421919435582
   }
  }
 }
