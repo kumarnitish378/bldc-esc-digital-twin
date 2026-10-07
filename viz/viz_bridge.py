@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Live bridge: motor digital twin (bldc_sim.py) -> web motor visualizer, over WebSocket.
 
-    python bldc_sim.py motor_tmotor_u8ii_kv100.json      # the motor (drive it with any ESC, e.g. foc_esc.py)
-    python viz_bridge.py                                 # then open http://127.0.0.1:8765
+    python motor/bldc_sim.py motor_tmotor_u8ii_kv100.json      # the motor (drive it with any ESC, e.g. foc_esc.py)
+    python viz/viz_bridge.py                                 # then open http://127.0.0.1:8765
 
 The bridge subscribes to the sim's probe stream (same mechanism as scope12.py), keeps the newest state
 and recent phase-current waveform, and pushes ~30 JSON frames/s to every connected browser. It also serves
@@ -21,8 +21,8 @@ import struct
 import sys
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from scope_probe import unpack_block          # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from scope.scope_probe import unpack_block          # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PAGE = os.path.join(HERE, "web", "motor_visualizer.html")

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """12-channel digital oscilloscope digital twin (PyQt + pyqtgraph).
 
-    python scope12.py                     # listens on UDP 127.0.0.1:9100, auto-probes bldc_sim on :9000
-    python scope12.py --sim-decim 4       # ask the motor sim for every 4th sample (lighter)
-    python scope12.py --depth 1000000     # memory depth per source (samples)
+    python scope/scope12.py                     # listens on UDP 127.0.0.1:9100, auto-probes bldc_sim on :9000
+    python scope/scope12.py --sim-decim 4       # ask the motor sim for every 4th sample (lighter)
+    python scope/scope12.py --depth 1000000     # memory depth per source (samples)
 
 Probes: every signal published by any program with scope_probe.ScopeProbe (your ESC) and every internal
 signal of the motor sim (currents, terminal voltages, star point, hall, gates, BEMF, rpm, torque, bus...).
@@ -25,9 +25,9 @@ import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from scope_probe import DEFAULT_SCOPE_PORT
-from scope_core import (NCH, HDIV, VDIV_N, VDIVS, TDIVS, Ch, Acquisition, Snapshot, ceil125, default_setup,
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from scope.scope_probe import DEFAULT_SCOPE_PORT
+from scope.scope_core import (NCH, HDIV, VDIV_N, VDIVS, TDIVS, Ch, Acquisition, Snapshot, ceil125, default_setup,
                         eng, find_trigger, measure, nearest_idx, peak_decimate, sanitize_setup, split_unit)
 
 COLORS = ["#FFE000", "#00E5FF", "#FF4FD8", "#4CFF6A", "#FF9A2E", "#5C8DFF",

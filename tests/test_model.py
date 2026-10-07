@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from bldc_model import BLDCMotor, MotorConfig, SECTOR_FWD, HALL_TO_SECTOR, RADS2RPM, D120
+from motor.bldc_model import BLDCMotor, MotorConfig, SECTOR_FWD, HALL_TO_SECTOR, RADS2RPM, D120
 
 DT = 10e-6
 

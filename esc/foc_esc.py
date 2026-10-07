@@ -18,10 +18,10 @@ angle, returning three PWM duties.
 
 Run it against the motor sim like an external ESC (lock-step UDP), publishing its internals to scope12:
 
-    python bldc_sim.py motor_tmotor_u8ii_kv100.json
-    python scope12.py                                # optional
-    python foc_esc.py --rpm 3000 --seconds 4         # encoder FOC
-    python foc_esc.py --sensorless --rpm 3000        # sensorless FOC
+    python motor/bldc_sim.py motor_tmotor_u8ii_kv100.json
+    python scope/scope12.py                                # optional
+    python esc/foc_esc.py --rpm 3000 --seconds 4         # encoder FOC
+    python esc/foc_esc.py --sensorless --rpm 3000        # sensorless FOC
 """
 import argparse
 import math
@@ -442,9 +442,9 @@ def identify(foc: FOC, plant_step, i_test=12.0):
 # ======================================================================= UDP runner (external ESC)
 def main():
     import os
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from bldc_protocol import DEFAULT_PORT, MODE_DUTY, FLAG_RESET, REPLY_SIZE, pack_cmd, unpack_reply
-    from scope_probe import ScopeProbe
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from motor.bldc_protocol import DEFAULT_PORT, MODE_DUTY, FLAG_RESET, REPLY_SIZE, pack_cmd, unpack_reply
+    from scope.scope_probe import ScopeProbe
 
     ap = argparse.ArgumentParser(description="FOC ESC talking to bldc_sim.py over UDP (lock-step)")
     ap.add_argument("--rpm", type=float, default=3000.0)
@@ -467,7 +467,7 @@ def main():
     try:
         fb = exchange((0.5, 0.5, 0.5), False, FLAG_RESET)
     except (socket.timeout, ConnectionError):
-        sys.exit(f"no reply from the motor sim on 127.0.0.1:{args.port} - start: python bldc_sim.py "
+        sys.exit(f"no reply from the motor sim on 127.0.0.1:{args.port} - start: python motor/bldc_sim.py "
                  "motor_tmotor_u8ii_kv100.json")
     t0 = fb["t"]
     if args.sensorless:

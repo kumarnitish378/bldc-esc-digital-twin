@@ -3,8 +3,8 @@ import math
 import numpy as np
 import pytest
 
-from foc_bench import new_bench
-from foc_esc import FOC, FOCConfig, wrap
+from esc.foc_bench import new_bench
+from esc.foc_esc import FOC, FOCConfig, wrap
 
 CFG = "motor_tmotor_u8ii_kv100.json"
 

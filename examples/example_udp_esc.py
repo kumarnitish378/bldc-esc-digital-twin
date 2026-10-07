@@ -1,8 +1,8 @@
 """Example: ESC in a separate program talking to bldc_sim.py over UDP (lock-step), with scope probes.
 
-    python bldc_sim.py            # terminal 1 (motor)
-    python scope12.py             # terminal 2 (oscilloscope - optional; probes the motor automatically)
-    python example_udp_esc.py     # terminal 3 (this ESC)
+    python motor/bldc_sim.py            # terminal 1 (motor)
+    python scope/scope12.py             # terminal 2 (oscilloscope - optional; probes the motor automatically)
+    python examples/example_udp_esc.py     # terminal 3 (this ESC)
 
 Each loop = one ESC control tick of 100 us (10 kHz). The sim advances exactly 100 us of motor time per
 packet, so results are deterministic regardless of PC speed. Uses the averaged-duty inverter mode
@@ -12,11 +12,11 @@ The ESC's own internal variables are published to the scope as source "esc" (dut
 stamped with MOTOR time, so on the scope they line up exactly with the motor's currents and voltages.
 """
 import os, socket, sys
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bldc_protocol import (DEFAULT_PORT, MODE_GATES, MODE_DUTY, FLAG_RESET, REPLY_SIZE,
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from motor.bldc_protocol import (DEFAULT_PORT, MODE_GATES, MODE_DUTY, FLAG_RESET, REPLY_SIZE,
                            pack_cmd, unpack_reply)
-from bldc_model import HALL_TO_SECTOR, SECTOR_FWD
-from scope_probe import ScopeProbe
+from motor.bldc_model import HALL_TO_SECTOR, SECTOR_FWD
+from scope.scope_probe import ScopeProbe
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.connect(("127.0.0.1", DEFAULT_PORT))
@@ -29,7 +29,7 @@ sock.send(pack_cmd(MODE_GATES, 0, flags=FLAG_RESET, load_nm=0.0, advance_us=TICK
 try:
     fb = unpack_reply(sock.recv(REPLY_SIZE))
 except (socket.timeout, ConnectionError):
-    sys.exit(f"no reply from the motor sim on 127.0.0.1:{DEFAULT_PORT} - start it first: python bldc_sim.py")
+    sys.exit(f"no reply from the motor sim on 127.0.0.1:{DEFAULT_PORT} - start it first: python motor/bldc_sim.py")
 t0 = fb["t"]
 next_print = 0.0
 while True:

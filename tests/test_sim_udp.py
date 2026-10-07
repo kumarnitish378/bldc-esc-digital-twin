@@ -8,9 +8,9 @@ import time
 
 import pytest
 
-import bldc_sim as bs
-from bldc_model import MotorConfig
-from bldc_protocol import CMD_FMT, MODE_DUTY, REPLY_SIZE, FLAG_RESET, pack_cmd, unpack_reply
+import motor.bldc_sim as bs
+from motor.bldc_model import MotorConfig
+from motor.bldc_protocol import CMD_FMT, MODE_DUTY, REPLY_SIZE, FLAG_RESET, pack_cmd, unpack_reply
 
 
 @pytest.fixture

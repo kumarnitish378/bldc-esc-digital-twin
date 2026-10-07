@@ -7,8 +7,8 @@ import random
 
 import numpy as np
 
-from bldc_model import BLDCMotor, MotorConfig, RADS2RPM
-from foc_esc import FOC, wrap
+from motor.bldc_model import BLDCMotor, MotorConfig, RADS2RPM
+from esc.foc_esc import FOC, wrap
 
 
 class Plant:
@@ -91,7 +91,7 @@ class Bench:
 
 
 def new_bench(cfg_path="motor_tmotor_u8ii_kv100.json", foc_cfg=None, encoder=True, noise=True, **cfg_over):
-    from foc_esc import FOCConfig
+    from esc.foc_esc import FOCConfig
     cfg = MotorConfig.from_json(cfg_path)
     for k, v in cfg_over.items():
         setattr(cfg, k, v)

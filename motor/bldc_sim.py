@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """BLDC motor digital twin - pygame UI + UDP interface for an external (simulated) ESC.
 
-    python bldc_sim.py [motor_config.json] [--port 9000] [--dt 10e-6] [--demo 0.5]
+    python motor/bldc_sim.py [motor_config.json] [--port 9000] [--dt 10e-6] [--demo 0.5]
 
 Physics + UDP server run in their own process (no GIL fight with the UI), pygame UI in the main one.
 
@@ -25,10 +25,10 @@ from dataclasses import asdict
 
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bldc_model import BLDCMotor, MotorConfig, SECTOR_FWD, RADS2RPM, TWO_PI, PI
-from bldc_protocol import CMD_FMT, CMD_SIZE, REPLY_FMT, MODE_GATES, FLAG_RESET, DEFAULT_PORT
-from scope_probe import MotorProbe
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from motor.bldc_model import CONFIG_DIR, config_path, BLDCMotor, MotorConfig, SECTOR_FWD, RADS2RPM, TWO_PI, PI
+from motor.bldc_protocol import CMD_FMT, CMD_SIZE, REPLY_FMT, MODE_GATES, FLAG_RESET, DEFAULT_PORT
+from scope.scope_probe import MotorProbe
 
 NCH = 14            # history channels: ia ib ic va vb vc vn rpm Te vbus ibus ha hb hc
 SAMPLE_DT = 20e-6   # scope sample period
@@ -437,6 +437,7 @@ def draw_motor(pygame, scr, font, cfg, pp, st, cx, cy, R):
 
 
 def load_cfg(path):
+    path = config_path(path)
     if path and os.path.exists(path):
         return MotorConfig.from_json(path)
     print(f"config {path!r} not found, using built-in defaults")
@@ -444,9 +445,8 @@ def load_cfg(path):
 
 
 def main():
-    here = os.path.dirname(os.path.abspath(__file__))
     ap = argparse.ArgumentParser(description="BLDC motor digital twin")
-    ap.add_argument("config", nargs="?", default=os.path.join(here, "motor_config.json"))
+    ap.add_argument("config", nargs="?", default=os.path.join(CONFIG_DIR, "motor_config.json"))
     ap.add_argument("--port", type=int, default=DEFAULT_PORT)
     ap.add_argument("--bind", default="127.0.0.1")
     ap.add_argument("--dt", type=float, default=10e-6, help="physics step [s] (10us default; <=2.5us for gate-level PWM)")

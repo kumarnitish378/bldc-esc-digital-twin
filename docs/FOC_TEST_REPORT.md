@@ -1,8 +1,8 @@
 # FOC ESC Test Report — T-Motor U8 II KV100
 
-**Device under test:** `foc_esc.py`, a field-oriented control ESC with encoder and sensorless modes
+**Device under test:** `esc/foc_esc.py`, a field-oriented control ESC with encoder and sensorless modes
 **Plant:** digital twin of the T-Motor U8 II KV100 (36N42P) on 48 V with a G28×9.2 CF propeller
-**Date:** 7 Oct 2026 · **Reproduce:** `python foc_tests.py` (about 2 min) → `docs/foc_report/` · raw numbers: [`results.json`](foc_report/results.json)
+**Date:** 7 Oct 2026 · **Reproduce:** `python validation/foc_tests.py` (about 2 min) → `docs/foc_report/` · raw numbers: [`results.json`](foc_report/results.json)
 
 ---
 
@@ -45,7 +45,7 @@
 
 Config file: [`motor_tmotor_u8ii_kv100.json`](../motor_tmotor_u8ii_kv100.json). Sources: [T-Motor U8 II KV100 product page (LigPower)](https://www.ligpower.com/product/u8-v2-u-efficiency-kv100.html), [T-Motor store, U8 II series](https://store.tmotor.com/goods.php?id=561).
 
-### 2.2 ESC under test (`foc_esc.py`)
+### 2.2 ESC under test (`esc/foc_esc.py`)
 - **Rates:** 20 kHz PWM, one current sample per period, and a one-period computation delay, as on a real MCU (with 1.5·Ts angle compensation).
 - **Current control:** Clarke/Park transforms, d/q PI current loops tuned by pole-zero cancellation for 1 kHz bandwidth, cross-coupling and back-EMF feed-forward, voltage-circle limiting with anti-windup.
 - **Modulation:** space-vector PWM with min/max injection; usable voltage is 95 % of Vbus/√3.
@@ -58,7 +58,7 @@ Config file: [`motor_tmotor_u8ii_kv100.json`](../motor_tmotor_u8ii_kv100.json). 
   - R from DC injection on the d axis;
   - L from a 2.5 kHz square-wave voltage on the d axis;
   - λ from the back-EMF during an open-loop spin.
-- **Coupling to the twin:** each 50 µs period the ESC receives phase currents, bus voltage and (encoder mode) the shaft angle, and returns three duties. This is the same exchange as the UDP lock-step link. A run over real UDP against `bldc_sim.py` gave the same steady state (iq 22.26 A over UDP vs 22.19 A in-process at 3000 rpm).
+- **Coupling to the twin:** each 50 µs period the ESC receives phase currents, bus voltage and (encoder mode) the shaft angle, and returns three duties. This is the same exchange as the UDP lock-step link. A run over real UDP against `motor/bldc_sim.py` gave the same steady state (iq 22.26 A over UDP vs 22.19 A in-process at 3000 rpm).
 
 ---
 

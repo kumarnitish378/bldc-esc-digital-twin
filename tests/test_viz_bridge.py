@@ -3,8 +3,8 @@ import struct
 
 import numpy as np
 
-import viz_bridge as vb
-from scope_probe import MOTOR_SIGNALS, pack_block
+import viz.viz_bridge as vb
+from scope.scope_probe import MOTOR_SIGNALS, pack_block
 
 
 def test_ws_frame_lengths():

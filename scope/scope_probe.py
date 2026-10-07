@@ -5,7 +5,7 @@ SIMULATION time, to the scope over UDP (default 127.0.0.1:9100). Signals from di
 line up on the scope as long as they use the same time base - in lock-step, stamp ESC samples
 with the motor's fb["t"].
 
-    from scope_probe import ScopeProbe
+    from scope.scope_probe import ScopeProbe
     probe = ScopeProbe("esc")                       # source name shown in the scope
     probe.sample(fb["t"], duty=d, sector=s, theta_est=th)   # call every control tick
     # units: put them in brackets in the name ->  probe.sample(t, **{"iq_ref[A]": 3.0})

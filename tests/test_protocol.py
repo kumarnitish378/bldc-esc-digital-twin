@@ -4,9 +4,9 @@ import struct
 import numpy as np
 import pytest
 
-from bldc_protocol import (CMD_SIZE, REPLY_FMT, REPLY_SIZE, MODE_DUTY, pack_cmd, unpack_reply)
-from scope_probe import MOTOR_SIGNALS, MotorProbe, pack_block, unpack_block
-from bldc_model import BLDCMotor
+from motor.bldc_protocol import (CMD_SIZE, REPLY_FMT, REPLY_SIZE, MODE_DUTY, pack_cmd, unpack_reply)
+from scope.scope_probe import MOTOR_SIGNALS, MotorProbe, pack_block, unpack_block
+from motor.bldc_model import BLDCMotor
 
 
 def test_command_size_and_defaults():

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from scope_core import (NCH, VDIVS, Source, ceil125, default_setup, eng, find_trigger, measure,
+from scope.scope_core import (NCH, VDIVS, Source, ceil125, default_setup, eng, find_trigger, measure,
                         peak_decimate, sanitize_setup, seq125)
 
 

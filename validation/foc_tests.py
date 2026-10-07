@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """FOC ESC test campaign on the T-Motor U8 II KV100 digital twin.
 
-    python foc_tests.py                 # all tests, ~3-5 min; writes docs/foc_report/ (PNG plots + results.json)
+    python validation/foc_tests.py                 # all tests, ~3-5 min; writes docs/foc_report/ (PNG plots + results.json)
 
 Every test is a closed-loop simulation: FOC ESC <-> motor + inverter + battery + G28x9.2 prop, one
 exchange per 50 us PWM period, with current-sensor noise. The ESC only sees what a real ESC sees
@@ -15,13 +15,14 @@ import time
 
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bldc_model import BLDCMotor, MotorConfig, SECTOR_FWD, RADS2RPM          # noqa: E402
-from foc_bench import new_bench                                               # noqa: E402
-from foc_esc import FOCConfig, identify                                       # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from motor.bldc_model import BLDCMotor, MotorConfig, SECTOR_FWD, RADS2RPM          # noqa: E402
+from esc.foc_bench import new_bench                                               # noqa: E402
+from esc.foc_esc import FOCConfig, identify                                       # noqa: E402
 
-CFG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "motor_tmotor_u8ii_kv100.json")
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "foc_report")
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CFG = os.path.join(ROOT, "configs", "motor_tmotor_u8ii_kv100.json")
+OUT = os.path.join(ROOT, "docs", "foc_report")
 # T-Motor U8II KV100, G28x9.2 CF prop, 48 V: (throttle %, thrust g, torque N.m, current A, rpm, power W)
 DATASHEET = [(40, 2243, 0.77, 3.50, 1896, 168), (50, 3231, 1.08, 6.00, 2268, 288), (60, 4201, 1.35, 8.90, 2581, 427),
              (70, 5153, 1.60, 12.20, 2858, 586), (80, 6171, 1.87, 16.20, 3122, 778), (90, 7329, 2.21, 21.40, 3379, 1027),

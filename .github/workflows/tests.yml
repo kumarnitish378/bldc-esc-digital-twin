@@ -12,5 +12,5 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install numpy pytest pyflakes
-      - run: python -m pyflakes *.py tests/*.py
+      - run: python -m pyflakes */*.py
       - run: python -m pytest -q

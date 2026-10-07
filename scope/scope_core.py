@@ -11,7 +11,7 @@ from dataclasses import dataclass, asdict
 
 import numpy as np
 
-from scope_probe import unpack_block
+from scope.scope_probe import unpack_block
 
 NCH = 12
 HDIV, VDIV_N = 10, 8                     # screen divisions

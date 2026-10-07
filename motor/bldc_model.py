@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import random
 from dataclasses import dataclass, asdict, fields
 
@@ -26,6 +27,17 @@ PI = math.pi
 TWO_PI = 2.0 * PI
 D120 = TWO_PI / 3.0
 RADS2RPM = 60.0 / TWO_PI
+
+CONFIG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "configs")
+
+
+def config_path(path):
+    """Resolve a motor config path: as given if it exists, else by file name in configs/."""
+    if path and not os.path.exists(path):
+        alt = os.path.join(CONFIG_DIR, os.path.basename(path))
+        if os.path.exists(alt):
+            return alt
+    return path
 
 # hall sector (0..5, hall edges at the commutation points) -> (high phase, low phase), forward torque
 SECTOR_FWD = [(0, 1), (0, 2), (1, 2), (1, 0), (2, 0), (2, 1)]
@@ -78,7 +90,7 @@ class MotorConfig:
 
     @staticmethod
     def from_json(path):
-        with open(path) as f:
+        with open(config_path(path)) as f:
             raw = json.load(f)
         names = {f.name for f in fields(MotorConfig)}
         unknown = set(raw) - names

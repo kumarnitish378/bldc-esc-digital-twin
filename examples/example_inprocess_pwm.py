@@ -1,7 +1,7 @@
 """Example: your ESC code and the motor in ONE Python process, gate-level PWM, with scope probes.
 
-    python scope12.py --no-sim         # terminal 1 (optional) - oscilloscope
-    python example_inprocess_pwm.py    # terminal 2
+    python scope/scope12.py --no-sim         # terminal 1 (optional) - oscilloscope
+    python examples/example_inprocess_pwm.py    # terminal 2
 
 Your ESC logic runs once per tick (dt). It sets the six gate signals, then calls motor.step(dt).
 This is the most accurate coupling (deterministic, real 20 kHz PWM with dead time, ripple visible).
@@ -9,16 +9,16 @@ Every motor signal is streamed to the scope as source "sim", the ESC internals a
 Zoom the scope to 10-20 us/div and trigger on sim/AH to see dead time and current ripple.
 """
 import sys, os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bldc_model import BLDCMotor, MotorConfig, HALL_TO_SECTOR, SECTOR_FWD
-from scope_probe import MotorProbe, ScopeProbe, udp_sender
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from motor.bldc_model import BLDCMotor, MotorConfig, HALL_TO_SECTOR, SECTOR_FWD
+from scope.scope_probe import MotorProbe, ScopeProbe, udp_sender
 
 DT = 2.5e-6                 # tick
 PWM_TICKS = 20              # 20 ticks * 2.5us = 50us -> 20 kHz
 DEAD_TICKS = 1              # dead time = 1 tick = 2.5 us
 T_END = 1.5
 
-motor = BLDCMotor(MotorConfig.from_json(os.path.join(os.path.dirname(os.path.abspath(__file__)), "motor_config.json")))
+motor = BLDCMotor(MotorConfig.from_json("motor_config.json"))
 scope = "--no-scope" not in sys.argv
 if scope:
     mprobe = MotorProbe(motor, udp_sender(), source="sim")

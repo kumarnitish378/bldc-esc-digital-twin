@@ -12,49 +12,65 @@ A test bench for developing ESC (electronic speed controller) firmware without h
 
 A configurable, physics-based BLDC motor + 3-phase inverter + DC-bus simulator. Your **ESC program** (a separate process, any language) drives it with **6 gate signals (AH AL BH BL CH CL)** or 3 phase duties, and gets back **phase currents, bus/battery current, RPM**, terminal voltages (for sensorless BEMF), hall bits, torque, temperature and faults.
 
-Plus a **12-channel digital oscilloscope** (`scope12.py`, PyQt + pyqtgraph). It can probe every internal signal of the motor and any variable inside your ESC program, on one shared simulation time base.
+Plus a **12-channel digital oscilloscope** (`scope/scope12.py`, PyQt + pyqtgraph). It can probe every internal signal of the motor and any variable inside your ESC program, on one shared simulation time base.
 
 ```
-pip install -r requirements.txt                 # numpy, pygame, pyqtgraph, PyQt6 (PySide6/PyQt5 also work)
-python bldc_sim.py                      # motor: UI + UDP server on 127.0.0.1:9000, uses motor_config.json
-python scope12.py                       # oscilloscope: auto-probes the motor sim, listens for probes on :9100
-python example_udp_esc.py               # example external ESC (lock-step), publishes its internals to the scope
-python bldc_sim.py --demo 0.5           # or spin the motor with the built-in 6-step ESC
-python example_inprocess_pwm.py         # ESC + motor in one process, real 20 kHz gate PWM, streamed to the scope
-python bldc_sim.py motor_57bly_24v.json # another motor
+pip install -r requirements.txt                        # numpy, pygame, pyqtgraph, PyQt6 (PySide6/PyQt5 also work)
+python motor/bldc_sim.py                               # motor: UI + UDP server on 127.0.0.1:9000, uses configs/motor_config.json
+python scope/scope12.py                                # oscilloscope: auto-probes the motor sim, listens for probes on :9100
+python examples/example_udp_esc.py                     # example external ESC (lock-step), publishes its internals to the scope
+python motor/bldc_sim.py --demo 0.5                    # or spin the motor with the built-in 6-step ESC
+python examples/example_inprocess_pwm.py               # ESC + motor in one process, real 20 kHz gate PWM, streamed to the scope
+python motor/bldc_sim.py motor_57bly_24v.json          # another motor (looked up in configs/)
 
 # FOC ESC on the T-Motor U8 II KV100 model
-python bldc_sim.py motor_tmotor_u8ii_kv100.json
-python foc_esc.py --rpm 3000            # encoder FOC (auto encoder alignment)    [2nd terminal]
-python foc_esc.py --sensorless --rpm 2500   # sensorless FOC (I/f start -> flux observer)
-python foc_tests.py                     # full FOC test campaign -> docs/foc_report/ + docs/FOC_TEST_REPORT.md
+python motor/bldc_sim.py motor_tmotor_u8ii_kv100.json
+python esc/foc_esc.py --rpm 3000                       # encoder FOC (auto encoder alignment)    [2nd terminal]
+python esc/foc_esc.py --sensorless --rpm 2500          # sensorless FOC (I/f start -> flux observer)
+python validation/foc_tests.py                         # full FOC test campaign -> docs/foc_report/ + docs/FOC_TEST_REPORT.md
 
 # 3-D web visualizer (live view of whatever the sim is doing)
-python viz_bridge.py                    # then open http://127.0.0.1:8765
+python viz/viz_bridge.py                               # then open http://127.0.0.1:8765
 ```
 
-## Files
+## Repository layout
+```
+motor/        BLDC motor + inverter + DC-bus physics, UDP protocol, digital-twin UI/server
+esc/          FOC ESC controller and the in-process ESC + motor bench
+scope/        12-channel oscilloscope: UI, acquisition/DSP core, probe library
+viz/          3-D web visualizer (web/motor_visualizer.html) and its live WebSocket bridge
+examples/     example ESC programs (UDP 6-step, in-process gate PWM)
+validation/   FOC test campaign that generates docs/FOC_TEST_REPORT.md data
+configs/      motor parameter JSON files
+tests/        pytest suite
+docs/         reports and screenshots
+```
+Run scripts from the repo root (`python motor/bldc_sim.py ...`). Modules import each other as packages
+(`from motor.bldc_model import BLDCMotor`). A motor config can be given by path or just by file name;
+names are looked up in `configs/`.
+
 | file | what |
 |---|---|
-| `bldc_model.py` | the physics (no pygame). Import `BLDCMotor`, `MotorConfig` directly for fast/headless/CI tests |
-| `bldc_sim.py` | digital-twin UI (motor view, 5 scopes, live load sliders) + UDP server. Physics runs in its own process |
-| `bldc_protocol.py` | UDP packet format + `pack_cmd()` / `unpack_reply()` helpers for your ESC program |
-| `motor_config.json`, `motor_57bly_24v.json` | example motors (drone 2212 1000KV, industrial 24 V 57BLY) |
-| `example_udp_esc.py` | external ESC over UDP, hall 6-step, soft start |
-| `example_inprocess_pwm.py` | gate-level complementary PWM with dead time, in-process |
-| `scope12.py` | 12-channel oscilloscope digital twin UI (PyQt + pyqtgraph) |
-| `scope_core.py` | scope acquisition memory, UDP receiver, trigger / peak-detect / measurement DSP (no GUI) |
-| `scope_probe.py` | probe library: `ScopeProbe` (put in your ESC code), `MotorProbe`, packet format |
-| `foc_esc.py` | **FOC ESC**: dq current control, SVPWM, speed loop, field weakening, encoder + sensorless observer, motor detection; UDP runner |
-| `foc_bench.py`, `foc_tests.py` | in-process ESC + motor bench and the FOC test campaign (plots + `results.json`) |
-| `motor_tmotor_u8ii_kv100.json` | T-Motor U8 II KV100 (36N42P, 12S) + G28×9.2 prop, from the T-Motor datasheet |
+| `motor/bldc_model.py` | the physics (no pygame). Import `BLDCMotor`, `MotorConfig` directly for fast/headless/CI tests |
+| `motor/bldc_sim.py` | digital-twin UI (motor view, 5 scopes, live load sliders) + UDP server. Physics runs in its own process |
+| `motor/bldc_protocol.py` | UDP packet format + `pack_cmd()` / `unpack_reply()` helpers for your ESC program |
+| `esc/foc_esc.py` | **FOC ESC**: dq current control, SVPWM, speed loop, field weakening, encoder + sensorless observer, motor detection; UDP runner |
+| `esc/foc_bench.py` | in-process ESC + motor bench (one PWM period per exchange) |
+| `validation/foc_tests.py` | the FOC test campaign (plots + `results.json`) |
+| `scope/scope12.py` | 12-channel oscilloscope digital twin UI (PyQt + pyqtgraph) |
+| `scope/scope_core.py` | scope acquisition memory, UDP receiver, trigger / peak-detect / measurement DSP (no GUI) |
+| `scope/scope_probe.py` | probe library: `ScopeProbe` (put in your ESC code), `MotorProbe`, packet format |
+| `viz/web/motor_visualizer.html` | **3-D web motor visualizer** (Three.js, single file): built-in FOC twin or live data |
+| `viz/viz_bridge.py` | serves the visualizer and streams the running sim to it over WebSocket (no extra packages) |
+| `examples/example_udp_esc.py` | external ESC over UDP, hall 6-step, soft start |
+| `examples/example_inprocess_pwm.py` | gate-level complementary PWM with dead time, in-process |
+| `configs/motor_config.json`, `configs/motor_57bly_24v.json` | example motors (drone 2212 1000KV, industrial 24 V 57BLY) |
+| `configs/motor_tmotor_u8ii_kv100.json` | T-Motor U8 II KV100 (36N42P, 12S) + G28×9.2 prop, from the T-Motor datasheet |
 | `docs/FOC_TEST_REPORT.md` | FOC test report: detection, loop responses, datasheet validation, ripple vs 6-step, sensorless, regen, protections |
-| `web/motor_visualizer.html` | **3-D web motor visualizer** (Three.js, single file): built-in FOC twin or live data |
-| `viz_bridge.py` | serves the visualizer and streams the running sim to it over WebSocket (no extra packages) |
 | `tests/` | pytest suite: motor physics vs theory, protocol, scope DSP, UDP server robustness, FOC loops |
 
 ## Screenshots
-| Motor digital twin (`bldc_sim.py`) | Scope with motor + ESC probes in lock-step |
+| Motor digital twin (`motor/bldc_sim.py`) | Scope with motor + ESC probes in lock-step |
 |---|---|
 | ![motor sim](docs/motor_sim.png) | ![scope](docs/scope_esc_lockstep.png) |
 
@@ -79,7 +95,7 @@ python viz_bridge.py                    # then open http://127.0.0.1:8765
 Validated against theory: no-load 11 911 rpm vs 12 000 ideal at 12 V/1000 KV (the gap is friction + Rds drop). Stall current matches V/(2R+2Rds). Regen braking pushes current back into the battery.
 
 ## Configuring a motor
-Copy a JSON and edit it. Every field is listed in `MotorConfig` in `bldc_model.py` with its unit. In the UI, **C** hot-reloads the file. Typical datasheet mapping:
+Copy a JSON and edit it. Every field is listed in `MotorConfig` in `motor/bldc_model.py` with its unit. In the UI, **C** hot-reloads the file. Typical datasheet mapping:
 - `kv_rpm_per_v`: Kv, or `1000 / Ke[V/krpm]` if the datasheet gives line-line Ke.
 - `phase_resistance_ohm` = R(line-line) / 2.
 - `phase_inductance_h` = L(line-line) / 2.
@@ -88,10 +104,10 @@ Copy a JSON and edit it. Every field is listed in `MotorConfig` in `bldc_model.p
 - `rotor_inertia_kgm2` from the datasheet (g·cm² × 1e-7).
 
 ## UDP interface (your ESC program ↔ sim)
-Send a 24-byte command to `127.0.0.1:9000`. You get a 72-byte reply. Layout is in `bldc_protocol.py`. In Python:
+Send a 24-byte command to `127.0.0.1:9000`. You get a 72-byte reply. Layout is in `motor/bldc_protocol.py`. In Python:
 
 ```python
-from bldc_protocol import *
+from motor.bldc_protocol import *
 sock.send(pack_cmd(MODE_GATES, gates=G_AH | G_BL, advance_us=10))   # A high, B low, C floating
 fb = unpack_reply(sock.recv(REPLY_SIZE))
 fb["ia"], fb["ib"], fb["ic"], fb["i_bus"], fb["rpm"], fb["hall"], fb["va"], fb["v_bus"] ...
@@ -150,7 +166,7 @@ Both programs listen on **127.0.0.1 only** by default. With `--bind 0.0.0.0`, an
 - Pure Python runs about 100 k steps/s, so 10 µs steps ≈ real time. For gate-level PWM, use `dt` ≤ 1/20 of the PWM period (`--dt 2.5e-6`). It then runs at roughly 0.25× real time, which lock-step handles transparently.
 - Not modelled: eddy/iron losses (lump them into `viscous_friction_nms`), mutual saturation/saliency (it's an SPM model, Ld = Lq), MOSFET switching transients, and gate-driver bootstrap limits.
 
-## 12-channel oscilloscope (`scope12.py`)
+## 12-channel oscilloscope (`scope/scope12.py`)
 A DSO/MSO-style scope that works on **simulation time**, so waveforms stay correct when the motor runs slower than real time (lock-step, gate-level PWM).
 
 **What you can probe.** Every channel picks any `source/signal` from a dropdown. Sources appear automatically as data arrives:
@@ -165,11 +181,11 @@ A DSO/MSO-style scope that works on **simulation time**, so waveforms stay corre
   The scope sends a heartbeat to the sim on :9000, and the sim streams data only while a scope is listening, so there's zero cost otherwise.
 - `esc/...` (or any name you choose): any variable in your ESC program, e.g. duty, sector, estimated angle, PI states or ZCD flags. Add two lines to your ESC:
   ```python
-  from scope_probe import ScopeProbe
+  from scope.scope_probe import ScopeProbe
   probe = ScopeProbe("esc")
   probe.sample(fb["t"], duty=d, sector=s, **{"theta_est[rad]": th, "iq_ref[A]": iq})  # every control tick
   ```
-  Time-stamp with the motor's `fb["t"]` so ESC and motor traces line up exactly. Units go in brackets in the name. A C/C++ ESC can send the same UDP packet; the layout is documented at the top of `scope_probe.py`.
+  Time-stamp with the motor's `fb["t"]` so ESC and motor traces line up exactly. Units go in brackets in the name. A C/C++ ESC can send the same UDP packet; the layout is documented at the top of `scope/scope_probe.py`.
 
 **Scope features**
 - **Channels:** 12, each with on/off, probe, scale/div (1-2-5 steps), position, offset, DC/AC/GND coupling, and Analog or **Digital** mode. Digital channels become logic-analyzer lanes below the analog screen, with an adjustable threshold.
@@ -212,7 +228,7 @@ Measured on a 2-core test machine:
 - At 100 ms/div (100 k points per channel on screen) it takes about 14 ms per frame.
 - Streaming every physics step costs the motor sim about 10% real-time speed; `--sim-decim` reduces that, and lock-step results are unaffected either way.
 
-## FOC ESC (`foc_esc.py`)
+## FOC ESC (`esc/foc_esc.py`)
 A field-oriented-control ESC written like MCU firmware. Each call takes one PWM period's current samples, the bus voltage and (optionally) the encoder angle, and returns three duties.
 
 **Control:**
@@ -240,7 +256,7 @@ A field-oriented-control ESC written like MCU firmware. Each call takes one PWM 
 
 Use it as a starting point for your own ESC. The controller has no simulator imports, so the same logic ports to C on an STM32.
 
-## 3-D web motor visualizer (`web/motor_visualizer.html`)
+## 3-D web motor visualizer (`viz/web/motor_visualizer.html`)
 A browser view of the motor in physically-based 3-D (Three.js):
 - **Geometry:** 36-tooth laminated stator with T-shaped teeth, 36 copper windings in the real 36N42P pattern (3 × 12N14P), 42 nickel-plated arc magnets, a vented anodized bell, and the mount.
 - **Windings light up from the actual phase currents:** *Phases* mode colours each phase; *Heat* mode shows I² losses. You see the stator field rotate in step with the rotor.
@@ -248,13 +264,13 @@ A browser view of the motor in physically-based 3-D (Three.js):
 - **Instrument rack:** speed, torque, battery power, iq/id, electrical frequency and winding temperature; a live **space-vector diagram** (rotor flux, current and voltage vectors, torque angle); and a **three-phase current scope**.
 
 Two data sources:
-- **Built-in twin:** the U8 II KV100 with the same FOC control laws runs inside the page, so it works on its own (open the file through `viz_bridge.py`, or any static server). Controls cover speed or torque (iq) control, prop on/off, a +0.5 N·m load step, and slow motion from 1/200 to real time.
-- **Live (Python):** `viz_bridge.py` subscribes to `bldc_sim.py`'s probe stream (the same mechanism as the scope) and streams it to the page over WebSocket. Whatever ESC is driving the sim (`foc_esc.py`, `example_udp_esc.py`, the built-in 6-step, your own) shows up in 3-D. Use the sim's slow-motion keys (`,` and `.`) to slow the rotor down.
+- **Built-in twin:** the U8 II KV100 with the same FOC control laws runs inside the page, so it works on its own (open the file through `viz/viz_bridge.py`, or any static server). Controls cover speed or torque (iq) control, prop on/off, a +0.5 N·m load step, and slow motion from 1/200 to real time.
+- **Live (Python):** `viz/viz_bridge.py` subscribes to `motor/bldc_sim.py`'s probe stream (the same mechanism as the scope) and streams it to the page over WebSocket. Whatever ESC is driving the sim (`esc/foc_esc.py`, `examples/example_udp_esc.py`, the built-in 6-step, your own) shows up in 3-D. Use the sim's slow-motion keys (`,` and `.`) to slow the rotor down.
 
 ```
-python bldc_sim.py motor_tmotor_u8ii_kv100.json
-python foc_esc.py --rpm 2000 --seconds 60
-python viz_bridge.py            # open http://127.0.0.1:8765 and choose "Live (Python)"
+python motor/bldc_sim.py motor_tmotor_u8ii_kv100.json
+python esc/foc_esc.py --rpm 2000 --seconds 60
+python viz/viz_bridge.py            # open http://127.0.0.1:8765 and choose "Live (Python)"
 ```
 ![live mode streaming the Python twin](docs/web_visualizer_live.png)
 
